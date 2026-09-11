@@ -31,6 +31,22 @@
           <input id="campo" type="text" placeholder="…oppure scrivilo qui" aria-label="Aggiungi un prodotto scrivendolo" enterkeyhint="done" />
           <button type="submit" aria-label="Aggiungi alla lista">+</button>
         </form>
+
+        <details id="accesso-conad" style="margin-top:1rem;background:#eaf3ff;border-radius:12px;padding:0.75rem 1rem;">
+          <summary style="cursor:pointer;font-weight:700;color:#123a6b;">⚙️ Accesso Conad (da fare una volta)</summary>
+          <p style="font-size:0.9rem;color:#333;margin:0.6rem 0;">
+            Nel tuo browser apri <b>spesaonline.conad.it</b> (già loggato).
+            Apri <b>Cookie-Editor stando su quella scheda</b>, premi
+            <b>Export → Export as JSON</b>, poi incolla qui sotto e premi il tasto.
+          </p>
+          <textarea id="cookie-testo" rows="4" placeholder="Incolla qui i cookie di spesaonline.conad.it (Export as JSON)"
+            style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #bcd;border-radius:10px;font:inherit;"></textarea>
+          <button id="cookie-importa" type="button"
+            style="margin-top:0.5rem;width:100%;padding:0.7rem;border:none;border-radius:10px;background:#1e5bb8;color:#fff;font:inherit;font-weight:700;cursor:pointer;">
+            Importa cookie e accedi
+          </button>
+          <p id="cookie-stato" role="status" style="font-size:0.9rem;margin:0.5rem 0 0;color:#123a6b;"></p>
+        </details>
       </main>
 
       <footer class="comandi">

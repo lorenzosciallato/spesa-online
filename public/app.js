@@ -414,3 +414,39 @@ bottoneNuova.addEventListener('click', () => {
 });
 
 disegnaLista();
+
+// --- Accesso Conad coi cookie (una volta) ---
+// Prende i cookie esportati dal browser normale (loggato su Conad) e li manda
+// all'app, che li inietta nel browser del server: cosi' risulti loggato.
+(function () {
+  const btn = document.getElementById('cookie-importa');
+  if (!btn) return;
+  const box = document.getElementById('cookie-testo');
+  const stato = document.getElementById('cookie-stato');
+  btn.addEventListener('click', async () => {
+    const dati = (box.value || '').trim();
+    if (!dati) { stato.textContent = 'Incolla prima i cookie di Conad qui sopra.'; return; }
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = 'Importo…';
+    try {
+      const r = await fetch('/api/browser/azione', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'cookie', dati }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        stato.textContent = (d.messaggio ? d.messaggio + ' — ' : '') + 'ora sei loggato! Torna su e fai la spesa.';
+        box.value = '';
+      } else {
+        stato.textContent = d.errore || 'Non ha funzionato: controlla di aver copiato i cookie dalla scheda di spesaonline.conad.it.';
+      }
+    } catch (e) {
+      stato.textContent = 'Errore: ' + e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
+})();
