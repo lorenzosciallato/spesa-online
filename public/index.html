@@ -32,29 +32,17 @@
           <button type="submit" aria-label="Aggiungi alla lista">+</button>
         </form>
 
-        <details id="accesso-conad" style="margin-top:1rem;background:#eaf3ff;border-radius:12px;padding:0.75rem 1rem;">
-          <summary style="cursor:pointer;font-weight:700;color:#123a6b;">⚙️ Accesso Conad (da fare una volta)</summary>
+        <details id="imposta-negozio" style="margin-top:1rem;background:#fff3e8;border-radius:12px;padding:0.75rem 1rem;">
+          <summary style="cursor:pointer;font-weight:700;color:#8a3c00;">🏪 Imposta negozio (una volta sola)</summary>
           <p style="font-size:0.9rem;color:#333;margin:0.6rem 0;">
-            Nel tuo browser apri <b>spesaonline.conad.it</b> (già loggato).
-            Apri <b>Cookie-Editor stando su quella scheda</b>, premi
-            <b>Export → Export as JSON</b>, poi incolla qui sotto e premi il tasto.
+            Serve solo la <b>prima volta</b>: sceglie il negozio <b>Conad Tolentino</b> con <b>ritiro</b>.
+            Non serve accedere: il login lo farai tu alla fine, a carrello pieno.
           </p>
-          <b style="font-size:0.9rem;">1) Cookie</b>
-          <textarea id="cookie-testo" rows="3" placeholder="Cookie-Editor → Export as JSON → incolla qui"
-            style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #bcd;border-radius:10px;font:inherit;"></textarea>
-          <b style="font-size:0.9rem;margin-top:0.4rem;">2) Memoria del sito (contiene il negozio)</b>
-          <p style="font-size:0.85rem;color:#333;margin:0.3rem 0;">
-            Sulla scheda <b>spesaonline.conad.it</b> premi <b>F12</b>, apri <b>Console</b>, incolla questa riga e premi Invio (copia la memoria):
-          </p>
-          <textarea readonly rows="2" onclick="this.select()"
-            style="width:100%;box-sizing:border-box;padding:0.5rem;border:1px dashed #bcd;border-radius:8px;font:12px monospace;background:#f7fbff;">copy(JSON.stringify({local:Object.assign({},localStorage),session:Object.assign({},sessionStorage)}))</textarea>
-          <textarea id="memoria-testo" rows="3" placeholder="…poi incolla qui il risultato della console"
-            style="width:100%;box-sizing:border-box;margin-top:0.3rem;padding:0.6rem 0.75rem;border:1px solid #bcd;border-radius:10px;font:inherit;"></textarea>
-          <button id="cookie-importa" type="button"
-            style="margin-top:0.5rem;width:100%;padding:0.7rem;border:none;border-radius:10px;background:#1e5bb8;color:#fff;font:inherit;font-weight:700;cursor:pointer;">
-            Importa tutto e accedi
+          <button id="imposta-negozio-btn" type="button"
+            style="width:100%;padding:0.7rem;border:none;border-radius:10px;background:#e8590c;color:#fff;font:inherit;font-weight:700;cursor:pointer;">
+            Imposta Conad Tolentino
           </button>
-          <p id="cookie-stato" role="status" style="font-size:0.9rem;margin:0.5rem 0 0;color:#123a6b;"></p>
+          <p id="negozio-stato" role="status" style="font-size:0.9rem;margin:0.5rem 0 0;color:#8a3c00;"></p>
         </details>
       </main>
 

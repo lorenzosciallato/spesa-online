@@ -535,20 +535,31 @@ export function stato() {
       modalita: soloCss(S.SESSIONE.modalita),
     });
 
-    const testo = `${letto.puntoVendita} ${letto.modalita} ${letto.intestazione}`;
-    const loggato = Boolean(letto.utente) && !/accedi/i.test(letto.accedi || '') ? true : !/accedi/i.test(letto.intestazione);
-    const puntoVendita = S.TESTI.puntoVendita.test(testo);
-    const ritiro = S.TESTI.ritiro.test(testo) && !S.TESTI.consegna.test(letto.modalita || '');
+    // Lo stato "pronto" dipende SOLO dal negozio scelto (Tolentino + ritiro):
+    // il login NON serve per riempire il carrello, si fa alla fine per pagare.
+    // Il segnale vero e' window.pointOfService/typeOfService.
+    const g = await p.evaluate(() => {
+      const get = (k) => { try { return window[k]; } catch { return undefined; } };
+      const pos = get('pointOfService');
+      return {
+        citta: pos && pos.address ? (pos.address.town || pos.address.city || '') : '',
+        haNegozio: Boolean(pos && typeof pos === 'object' && (pos.name || pos.uid || pos.address)),
+        servizio: String(get('typeOfService') || ''),
+      };
+    }).catch(() => ({}));
+
+    const testo = `${letto.puntoVendita} ${letto.modalita} ${letto.intestazione} ${g.citta}`;
+    const puntoVendita = g.haNegozio ? S.TESTI.puntoVendita.test(`${g.citta} ${testo}`) : S.TESTI.puntoVendita.test(testo);
+    const ritiro = /ORDER_AND_COLLECT|RITIR/i.test(g.servizio) || (S.TESTI.ritiro.test(testo) && !S.TESTI.consegna.test(letto.modalita || ''));
     const problemi = [];
-    if (!loggato) problemi.push('non risulti loggato');
-    if (!puntoVendita) problemi.push('il punto vendita non sembra Tolentino');
-    if (!ritiro) problemi.push('la modalita non sembra "ritiro in negozio"');
+    if (!g.haNegozio && !puntoVendita) problemi.push('manca la scelta del negozio: apri "Imposta negozio" e scegli Tolentino');
+    else if (!puntoVendita) problemi.push('il negozio scelto non sembra Tolentino');
 
     return {
       pronto: problemi.length === 0,
-      loggato,
-      puntoVendita: letto.puntoVendita || (puntoVendita ? 'Tolentino' : ''),
-      modalita: letto.modalita || (ritiro ? 'ritiro in negozio' : ''),
+      loggato: true, // non richiesto qui: il login si fa al pagamento
+      puntoVendita: g.citta || letto.puntoVendita || (puntoVendita ? 'Tolentino' : ''),
+      modalita: /ORDER_AND_COLLECT/i.test(g.servizio) ? 'ritiro in negozio' : (letto.modalita || (ritiro ? 'ritiro in negozio' : '')),
       problemi,
       url: p.url(),
     };
@@ -838,11 +849,13 @@ export function azione(a) {
         await passo('indirizzo', async () => {
           await indirizzo.click({ timeout: 5000 });
           await indirizzo.fill('');
-          await indirizzo.type('Contrada Cisterna, Tolentino', { delay: 60 });
-          await p.waitForTimeout(2000);
-          const scelto = await cliccaVisibile(p, '.pac-container .pac-item:has-text("Tolentino"), .pac-container .pac-item');
+          // Indirizzo esatto del punto vendita: cosi' Google lo geolocalizza
+          // preciso e la lista negozi propone subito Spazio Conad Tolentino.
+          await indirizzo.type('Contrada Cisterna, 62029 Tolentino MC', { delay: 70 });
+          await p.waitForTimeout(2500);
+          const scelto = await cliccaVisibile(p, '.pac-container .pac-item:has-text("Tolentino"), .pac-item:has-text("Tolentino"), .pac-container .pac-item, .pac-item');
           if (!scelto) await indirizzo.press('Enter');
-          await p.waitForTimeout(1200);
+          await p.waitForTimeout(1500);
         });
 
         // 3) Verifica.

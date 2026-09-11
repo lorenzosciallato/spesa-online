@@ -415,38 +415,27 @@ bottoneNuova.addEventListener('click', () => {
 
 disegnaLista();
 
-// --- Accesso Conad coi cookie (una volta) ---
-// Prende i cookie esportati dal browser normale (loggato su Conad) e li manda
-// all'app, che li inietta nel browser del server: cosi' risulti loggato.
+// --- Imposta negozio (una volta): sceglie Conad Tolentino come ospite. ---
+// Niente login: il carrello si riempie da ospite, l'accesso si fa al pagamento.
 (function () {
-  const btn = document.getElementById('cookie-importa');
+  const btn = document.getElementById('imposta-negozio-btn');
   if (!btn) return;
-  const box = document.getElementById('cookie-testo');
-  const boxMem = document.getElementById('memoria-testo');
-  const stato = document.getElementById('cookie-stato');
+  const stato = document.getElementById('negozio-stato');
   btn.addEventListener('click', async () => {
-    const dati = (box.value || '').trim();
-    const memoria = (boxMem && boxMem.value || '').trim();
-    if (!dati) { stato.textContent = 'Incolla prima i cookie di Conad qui sopra.'; return; }
     btn.disabled = true;
     const orig = btn.textContent;
-    btn.textContent = 'Importo…';
+    btn.textContent = 'Imposto il negozio… (20-30 s)';
+    if (stato) stato.textContent = 'Sto scegliendo Conad Tolentino con ritiro…';
     try {
       const r = await fetch('/api/browser/azione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'cookie', dati, memoria: memoria || undefined }),
+        body: JSON.stringify({ tipo: 'scegli-negozio' }),
       });
       const d = await r.json().catch(() => ({}));
-      if (r.ok) {
-        stato.textContent = (d.messaggio ? d.messaggio + ' — ' : '') + 'ora sei loggato! Torna su e fai la spesa.';
-        box.value = '';
-        if (boxMem) boxMem.value = '';
-      } else {
-        stato.textContent = d.errore || 'Non ha funzionato: controlla di aver copiato i cookie dalla scheda di spesaonline.conad.it.';
-      }
+      if (stato) stato.textContent = r.ok ? (d.messaggio || 'Fatto.') : (d.errore || 'Non ha funzionato.');
     } catch (e) {
-      stato.textContent = 'Errore: ' + e.message;
+      if (stato) stato.textContent = 'Errore: ' + e.message;
     } finally {
       btn.disabled = false;
       btn.textContent = orig;
