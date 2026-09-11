@@ -317,3 +317,52 @@ button.primario:disabled {
   text-align: center;
   padding: 2rem 1rem;
 }
+
+.avviso {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--accento);
+  border-radius: 10px;
+  background: var(--accento-tenue);
+  color: var(--testo);
+  font-size: 0.9rem;
+}
+
+.avviso.ok {
+  border-color: var(--verde);
+  background: var(--verde-tenue);
+}
+
+.invio {
+  margin-top: 1rem;
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: var(--ombra);
+}
+
+.rapporto {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rapporto h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.rapporto ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.rapporto li {
+  margin: 0.2rem 0;
+}
+
+.rapporto .totale-rapporto {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}

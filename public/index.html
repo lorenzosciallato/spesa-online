@@ -13,6 +13,8 @@
     </header>
 
     <main>
+      <p id="stato-sessione" class="avviso" role="status" hidden></p>
+
       <section class="dettatura">
         <div class="riga-microfono">
           <button id="microfono" class="microfono" type="button" aria-label="Detta la lista">
@@ -36,6 +38,13 @@
       </section>
 
       <section id="risultati" class="risultati" aria-live="polite"></section>
+
+      <section id="invio" class="invio" hidden>
+        <button id="metti-nel-carrello" class="primario" type="button">Metti nel carrello Conad</button>
+        <p class="dettagli">Aggiunge le scelte qui sopra al carrello del sito e si ferma: l'orario di ritiro e il pagamento li fai tu.</p>
+      </section>
+
+      <section id="rapporto" class="rapporto" aria-live="polite" hidden></section>
     </main>
 
     <footer id="riepilogo" class="riepilogo" hidden>

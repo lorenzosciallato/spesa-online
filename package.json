@@ -6,7 +6,12 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "conad:login": "node scripts/conad-login.js",
+    "conad:ispeziona": "node scripts/conad-ispeziona.js"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "1.56.1"
+  }
 }
