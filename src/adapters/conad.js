@@ -485,6 +485,33 @@ export function azione(a) {
       case 'popup':
         await chiudiPopup(p);
         break;
+      case 'login-conad': {
+        // Compila email e password e preme Accedi cercandoli per nome,
+        // senza dipendere dalle coordinate del click sullo screenshot.
+        await chiudiPopup(p).catch(() => {});
+        const email = String(a.email || '');
+        const password = String(a.password || '');
+        const campoEmail = p.locator(
+          'input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]'
+        ).first();
+        const campoPwd = p.locator(
+          'input[type="password"], input[name*="pass" i], input[id*="pass" i]'
+        ).first();
+        await campoEmail.fill(email, { timeout: 8000 });
+        await campoPwd.fill(password, { timeout: 8000 });
+        const accedi = p.locator(
+          'button:has-text("Accedi"), input[type="submit"][value*="Accedi" i], button[type="submit"]'
+        ).first();
+        await accedi.click({ timeout: 8000 });
+        await p.waitForLoadState('networkidle').catch(() => {});
+        break;
+      }
+      case 'clic-testo': {
+        const testo = String(a.testo || '').slice(0, 40);
+        const bottone = p.locator(`button:has-text("${testo}"), a:has-text("${testo}")`).first();
+        await bottone.click({ timeout: 8000 });
+        break;
+      }
       default:
         throw new Error(`azione sconosciuta: ${a.tipo}`);
     }
