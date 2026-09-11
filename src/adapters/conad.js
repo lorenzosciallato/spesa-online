@@ -823,9 +823,14 @@ export function azione(a) {
         // fallisce dice QUALE, cosi' si finisce a mano con "Clicca per nome".
         const passo = async (nome, fn) => {
           try {
-            await fn();
+            // Tempo massimo per passo: se un passo si impianta (es. la tendina
+            // di Google), non blocca all'infinito ma dice DOVE si e' fermato.
+            await Promise.race([
+              fn(),
+              new Promise((_, no) => setTimeout(() => no(new Error('troppo lento (timeout 20s)')), 20000)),
+            ]);
           } catch (e) {
-            throw new Error(`scelta negozio, passo "${nome}": ${String(e.message).split('\n')[0]}. Finisci a mano con "Clicca per nome".`);
+            throw new Error(`scelta negozio, passo "${nome}": ${String(e.message).split('\n')[0]}. Guarda /conad.html per vedere dove si e' fermato.`);
           }
         };
         await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
