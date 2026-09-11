@@ -576,24 +576,76 @@ export function azione(a) {
         await chiudiPopup(p);
         break;
       case 'login-conad': {
-        // Compila email e password e preme Accedi cercandoli per nome,
-        // senza dipendere dalle coordinate del click sullo screenshot.
-        await chiudiPopup(p).catch(() => {});
+        // Fa tutto da solo: se serve va alla pagina di login, chiude i cookie,
+        // compila email e password e preme Accedi. Niente click sulla foto.
         const email = String(a.email || '');
         const password = String(a.password || '');
-        const campoEmail = p.locator(
-          'input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i]'
-        ).first();
-        const campoPwd = p.locator(
-          'input[type="password"], input[name*="pass" i], input[id*="pass" i]'
-        ).first();
-        await campoEmail.fill(email, { timeout: 8000 });
-        await campoPwd.fill(password, { timeout: 8000 });
+        if (!email || !password) throw new Error('scrivi prima email e password qui sopra');
+
+        const selEmail = 'input[type="email"], input[name*="mail" i], input[id*="mail" i], input[placeholder*="mail" i], input[name*="user" i], input[autocomplete="username"]';
+        const selPwd = 'input[type="password"], input[name*="pass" i], input[id*="pass" i], input[autocomplete="current-password"]';
+        const visibile = async (sel) => {
+          try { return await p.locator(sel).first().isVisible({ timeout: 500 }); } catch { return false; }
+        };
+
+        await chiudiPopup(p).catch(() => {});
+
+        // 1) Se il modulo di login non c'e', raggiungilo: clic su "Accedi",
+        //    poi in ripiego gli indirizzi noti di accesso.
+        if (!(await visibile(selEmail))) {
+          const linkAccedi = p.locator(
+            'a:has-text("Accedi"), button:has-text("Accedi"), a[href*="login" i], a[href*="entry" i], a[href*="my.conad" i]'
+          ).first();
+          try {
+            if (await linkAccedi.isVisible({ timeout: 2000 })) {
+              await linkAccedi.click({ timeout: 5000 });
+              await p.waitForLoadState('domcontentloaded').catch(() => {});
+              await p.waitForTimeout(1500);
+            }
+          } catch { /* nessun link: provo gli indirizzi diretti */ }
+          await chiudiPopup(p).catch(() => {});
+
+          if (!(await visibile(selEmail))) {
+            for (const u of ['https://my.conad.it/login', `${S.BASE_URL}/entry`, `${S.BASE_URL}/login`]) {
+              await p.goto(u, { waitUntil: 'domcontentloaded' }).catch(() => {});
+              await p.waitForTimeout(1200);
+              await chiudiPopup(p).catch(() => {});
+              if (await visibile(selEmail)) break;
+            }
+          }
+        }
+
+        // 2) Aspetta la casella email; se non arriva, dillo chiaro.
+        try {
+          await p.locator(selEmail).first().waitFor({ state: 'visible', timeout: 15000 });
+        } catch {
+          throw new Error('non trovo la pagina di accesso di Conad: clicca "Accedi" sulla foto e riprova');
+        }
+        await p.locator(selEmail).first().fill(email, { timeout: 8000 });
+
+        // 3) Password: se non c'e' subito, forse serve un passaggio "Continua".
+        if (!(await visibile(selPwd))) {
+          const avanti = p.locator(
+            'button:has-text("Continua"), button:has-text("Avanti"), button:has-text("Prosegui"), button[type="submit"]'
+          ).first();
+          try {
+            if (await avanti.isVisible({ timeout: 1500 })) { await avanti.click({ timeout: 4000 }); await p.waitForTimeout(1500); }
+          } catch { /* avanti */ }
+        }
+        try {
+          await p.locator(selPwd).first().waitFor({ state: 'visible', timeout: 10000 });
+        } catch {
+          throw new Error('trovata la email ma non la casella password: la pagina di Conad e\' cambiata');
+        }
+        await p.locator(selPwd).first().fill(password, { timeout: 8000 });
+
+        // 4) Premi Accedi / Entra.
         const accedi = p.locator(
-          'button:has-text("Accedi"), input[type="submit"][value*="Accedi" i], button[type="submit"]'
+          'button:has-text("Accedi"), button:has-text("Entra"), button:has-text("Login"), input[type="submit"][value*="Accedi" i], button[type="submit"]'
         ).first();
         await accedi.click({ timeout: 8000 });
-        await p.waitForLoadState('networkidle').catch(() => {});
+        await p.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await p.waitForTimeout(1500);
         break;
       }
       case 'clic-testo': {
