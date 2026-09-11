@@ -177,11 +177,10 @@ export const CONTATORE = [
   'header [class*="cart"] [class*="num"]',
 ];
 
-// Situazioni in cui il sito NON aggiunge e apre invece un pannello:
-// - `interactionCondition = "REQUIRE_SERVICE_CHOICE"`: manca la scelta del
-//   negozio/servizio (tipico da sloggato) -> prima serve `npm run conad:login`.
-// - una modale di avviso ("modal-cart", contingentamento, ecc.).
-export const SCELTA_SERVIZIO = /REQUIRE_SERVICE_CHOICE|REQUIRE_LOGIN|CHOOSE_SERVICE/i;
+// Pannelli che, se aperti, bloccano l'aggiunta al carrello (avvisi, limiti,
+// contingentamento locker, ecc.). NB: la scelta del negozio si verifica con
+// window.pointOfService, non con interactionCondition (che vale sempre
+// "REQUIRE_SERVICE_CHOICE" anche a negozio scelto).
 export const MODALE_BLOCCANTE = [
   '.uk-modal.uk-open',
   '.component-modal-cart-generic.uk-open',

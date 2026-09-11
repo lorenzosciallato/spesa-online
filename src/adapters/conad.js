@@ -283,7 +283,7 @@ async function contaCarrello(p) {
     try {
       const c = window.cart;
       if (c && typeof c === 'object') {
-        for (const k of ['totalQuantity', 'totalItems', 'numberOfItems', 'productsQuantity', 'itemsQuantity', 'numItems']) {
+        for (const k of ['totalUnitCount', 'totalQuantity', 'totalItems', 'numberOfItems', 'productsQuantity', 'itemsQuantity', 'numItems']) {
           if (typeof c[k] === 'number') return c[k];
         }
         for (const k of ['items', 'products', 'entries', 'orderItems']) {
@@ -307,16 +307,24 @@ async function contaCarrello(p) {
 // Il sito, invece di aggiungere, apre un pannello? Da sloggato manca la scelta
 // del negozio/servizio; puo' anche comparire una modale di avviso. In quei
 // casi il click non aggiunge nulla e va segnalato, non contato come successo.
+// ATTENZIONE: NON usare window.interactionCondition per capire se manca il
+// negozio: su Conad vale "REQUIRE_SERVICE_CHOICE" SEMPRE, anche a negozio
+// gia' scelto. Il segnale vero e' window.pointOfService (l'oggetto del punto
+// vendita) e window.typeOfService. Un pannello modale aperto blocca comunque.
 async function motivoBlocco(p) {
-  const condizione = await p.evaluate(() => {
-    try {
-      return String(window.interactionCondition || '');
-    } catch {
-      return '';
-    }
-  });
-  if (S.SCELTA_SERVIZIO.test(condizione)) {
-    return 'il sito chiede prima di scegliere negozio e servizio (di solito perche\' non sei loggato): esegui "npm run conad:login" e riprova';
+  const stato = await p.evaluate(() => {
+    const g = (k) => { try { return window[k]; } catch { return undefined; } };
+    const pos = g('pointOfService');
+    return {
+      negozio: pos && typeof pos === 'object' ? Boolean(pos.name || pos.uid || pos.address) : Boolean(pos),
+      loggato: Boolean(g('user')),
+    };
+  }).catch(() => ({ negozio: true, loggato: true }));
+
+  if (!stato.negozio) {
+    return stato.loggato
+      ? 'sei loggato ma manca la scelta del negozio: apri "Accesso Conad", scegli Tolentino + ritiro e premi il tasto arancione'
+      : 'non risulti loggato: importa i cookie in "Accesso Conad" e scegli Tolentino + ritiro';
   }
   const modale = await primoVisibile(p, S.MODALE_BLOCCANTE, 200);
   if (modale) {
@@ -335,13 +343,6 @@ export function aggiungiAlCarrello(prodotto, quantita) {
     const voluta = Math.max(1, Math.round(quantita || 1));
     const p = await vaiA(S.PAGINE.ricerca(prodotto.ricerca || prodotto.nome));
     await p.waitForTimeout(ATTESA);
-
-    // Se il sito chiede prima di scegliere negozio/servizio, aggiungere e'
-    // inutile: lo segnalo subito invece di fingere un successo.
-    const bloccoIniziale = await motivoBlocco(p);
-    if (S.SCELTA_SERVIZIO && bloccoIniziale && /negozio|servizio|loggat/i.test(bloccoIniziale)) {
-      return { ok: false, quantita: 0, motivo: bloccoIniziale };
-    }
 
     let scheda = await trovaScheda(p, prodotto);
     if (!scheda && prodotto.url) {
@@ -702,23 +703,23 @@ export function azione(a) {
         await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
         await p.waitForTimeout(2500);
         await chiudiPopup(p).catch(() => {});
-        // Diagnostica: cosa vede il robot adesso? (login, negozio, servizio)
+        // Diagnostica: cosa vede il robot adesso? (login e NEGOZIO vero,
+        // cioe' window.pointOfService, non interactionCondition).
         const diag = await p.evaluate(() => {
           const g = (k) => { try { return window[k]; } catch { return undefined; } };
           const pos = g('pointOfService');
-          const nome = pos && (pos.displayName || pos.name || pos.storeName || pos.uid);
-          const testo = document.body ? document.body.innerText : '';
+          const u = g('user');
+          const citta = pos && pos.address && (pos.address.town || pos.address.city);
           return {
-            cond: String(g('interactionCondition') || ''),
-            negozio: nome || (/(tolentino)/i.test(testo) ? 'Tolentino (nel testo)' : ''),
+            negozio: pos && typeof pos === 'object' ? (citta || pos.name || pos.uid || 'sì') : '',
             servizio: String(g('typeOfService') || ''),
-            loggato: !/\bAccedi\b/.test(testo) || /esci|logout|il mio account/i.test(testo),
+            loggato: Boolean(u) || Boolean(pos),
           };
         }).catch(() => ({}));
-        const ok = diag.cond && !/REQUIRE/i.test(diag.cond);
+        const ok = Boolean(diag.negozio);
         return {
           url: p.url(),
-          messaggio: `importati ${cookie.length} cookie — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}" stato:"${diag.cond || '?'}"${ok ? ' ✅ pronto' : ' ⚠ Conad non vede il negozio per questa sessione'}`,
+          messaggio: `importati ${cookie.length} cookie — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}"${ok ? ' ✅ pronto: fai la spesa!' : ' ⚠ manca il negozio: scegli Tolentino + ritiro'}`,
         };
       }
       case 'clic-conad': {
