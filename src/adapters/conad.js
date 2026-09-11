@@ -228,6 +228,31 @@ export function ispeziona(query) {
   });
 }
 
+// Primo elemento VISIBILE tra tutti quelli che combaciano. Non il primo del
+// DOM: sul sito Conad lo stesso testo ("Conferma il negozio", "Accedi"...)
+// compare piu' volte dentro modali chiuse, e il primo e' quasi sempre nascosto.
+async function trovaVisibile(radice, selettore, massimo = 25) {
+  const tutti = radice.locator(selettore);
+  const n = Math.min(await tutti.count().catch(() => 0), massimo);
+  for (let i = 0; i < n; i += 1) {
+    const el = tutti.nth(i);
+    if (await el.isVisible().catch(() => false)) return el;
+  }
+  return null;
+}
+
+async function cliccaVisibile(radice, selettore) {
+  const el = await trovaVisibile(radice, selettore);
+  if (!el) return false;
+  await el.scrollIntoViewIfNeeded().catch(() => {});
+  await el.click({ timeout: 5000 });
+  return true;
+}
+
+function testoSicuro(t) {
+  return String(t || '').replace(/["\\]/g, '').trim().slice(0, 60);
+}
+
 async function primoVisibile(radice, selettori, timeout = 200) {
   for (const s of selettori) {
     const el = radice.locator(s).first();
@@ -723,32 +748,115 @@ export function azione(a) {
         };
       }
       case 'clic-conad': {
-        // Preme il "tasto arancione" della schermata cercandolo per TESTO
-        // (non a coordinate): funziona dove il click sulla foto sbaglia mira.
-        const testi = a.testo
-          ? [String(a.testo).slice(0, 40)]
-          : ['Conferma il negozio', 'Conferma', 'Verifica', 'Continua', 'Prosegui', 'Seleziona', 'Scegli', 'Entra', 'Accedi'];
-        for (const t of testi) {
-          const b = p.locator(`button:has-text("${t}"), a:has-text("${t}"), [role="button"]:has-text("${t}")`).first();
-          try {
-            if (await b.isVisible({ timeout: 600 })) {
-              await b.scrollIntoViewIfNeeded().catch(() => {});
-              await b.click({ timeout: 5000 });
-              await p.waitForLoadState('domcontentloaded').catch(() => {});
-              await p.waitForTimeout(1000);
-              return { url: p.url(), messaggio: `premuto "${t}"` };
-            }
-          } catch {
-            /* provo il prossimo */
+        // Preme il "tasto arancione" della schermata cercandolo per TESTO e
+        // prendendo il primo VISIBILE (non a coordinate, non il primo del DOM).
+        // Prima i selettori precisi del sito, poi i testi piu' comuni.
+        const candidati = [
+          ['Conferma il negozio', '#modal-onboarding .btn-conferma-pdv button, .btn-conferma-pdv button, button:has-text("Conferma il negozio")'],
+          ['Procedi', 'button:has-text("Procedi")'],
+          ['Conferma', 'button:has-text("Conferma")'],
+          ['Verifica', '#verificaButton, button.submitButton, button:has-text("Verifica")'],
+          ['Seleziona', 'button:has-text("Seleziona")'],
+          ['Continua', 'button:has-text("Continua"), button:has-text("Prosegui")'],
+          ['Scegli', 'button:has-text("Scegli")'],
+          ['Accedi', 'button:has-text("Accedi"), button:has-text("Entra")'],
+        ];
+        for (const [nome, sel] of candidati) {
+          if (await cliccaVisibile(p, sel)) {
+            await p.waitForLoadState('domcontentloaded').catch(() => {});
+            await p.waitForTimeout(1000);
+            return { url: p.url(), messaggio: `premuto "${nome}"` };
           }
         }
-        throw new Error('nessun tasto (Conferma/Verifica/Continua/Accedi) trovato in questa schermata');
+        throw new Error('nessun tasto visibile riconosciuto: scrivi il testo del tasto in "Clicca per nome"');
       }
       case 'clic-testo': {
-        const testo = String(a.testo || '').slice(0, 40);
-        const bottone = p.locator(`button:has-text("${testo}"), a:has-text("${testo}")`).first();
-        await bottone.click({ timeout: 8000 });
-        break;
+        // Clicca QUALSIASI tasto/link per il testo che si legge nella foto.
+        const testo = testoSicuro(a.testo);
+        if (!testo) throw new Error('scrivi il testo del tasto da premere');
+        const sel = `button:has-text("${testo}"), a:has-text("${testo}"), [role="button"]:has-text("${testo}"), li:has-text("${testo}"), label:has-text("${testo}")`;
+        if (!(await cliccaVisibile(p, sel))) throw new Error(`nessun tasto visibile con il testo "${testo}"`);
+        await p.waitForLoadState('domcontentloaded').catch(() => {});
+        await p.waitForTimeout(800);
+        return { url: p.url(), messaggio: `premuto "${testo}"` };
+      }
+      case 'scegli-negozio': {
+        // Sceglie da solo "Ordina e ritira" + Spazio Conad Tolentino usando i
+        // selettori reali della modale di onboarding di Conad. Se un passo
+        // fallisce dice QUALE, cosi' si finisce a mano con "Clicca per nome".
+        const passo = async (nome, fn) => {
+          try {
+            await fn();
+          } catch (e) {
+            throw new Error(`scelta negozio, passo "${nome}": ${String(e.message).split('\n')[0]}. Finisci a mano con "Clicca per nome".`);
+          }
+        };
+        await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
+        await p.waitForTimeout(1500);
+        await chiudiPopup(p).catch(() => {});
+
+        // 1) La casella dell'indirizzo: nella landing (senza negozio) o nella
+        //    modale, che apro da "Modifica" se serve.
+        const selIndirizzo = '#googleInputLPOnboardingLine1, #googleInputOnboardingStep0Line1, input.google-input-line1';
+        let indirizzo = await trovaVisibile(p, selIndirizzo);
+        if (!indirizzo) {
+          await cliccaVisibile(p, 'button[aria-label="Modifica indirizzo"], button[aria-label="Modifica servizio"]');
+          await p.waitForTimeout(1500);
+          indirizzo = await trovaVisibile(p, selIndirizzo);
+        }
+        await passo('casella indirizzo', async () => {
+          if (!indirizzo) throw new Error('non la trovo in questa schermata');
+        });
+
+        // 2) Scrivo l'indirizzo e prendo il suggerimento di Google.
+        await passo('indirizzo', async () => {
+          await indirizzo.click({ timeout: 5000 });
+          await indirizzo.fill('');
+          await indirizzo.type('Contrada Cisterna, Tolentino', { delay: 60 });
+          await p.waitForTimeout(2000);
+          const scelto = await cliccaVisibile(p, '.pac-container .pac-item:has-text("Tolentino"), .pac-container .pac-item');
+          if (!scelto) await indirizzo.press('Enter');
+          await p.waitForTimeout(1200);
+        });
+
+        // 3) Verifica.
+        await passo('Verifica', async () => {
+          await cliccaVisibile(p, '#verificaButton, button.submitButton, button:has-text("Verifica")');
+          await p.waitForTimeout(3000);
+        });
+
+        // 4) Servizio: Ordina e ritira.
+        await passo('Ordina e ritira', async () => {
+          const ok = await cliccaVisibile(p, '#ordina-e-ritira button.uk-button-primary, #ordina-e-ritira button:has-text("Seleziona")');
+          if (!ok) throw new Error('tasto "Seleziona" di Ordina e ritira non trovato');
+          await p.waitForTimeout(3000);
+        });
+
+        // 5) Il negozio Spazio Conad di Tolentino nella lista.
+        await passo('negozio Tolentino', async () => {
+          const ok = await cliccaVisibile(p, '.lista-negozi-section li:has-text("CISTERNA"), .lista-negozi-section li:has-text("TOLENTINO"), li:has-text("TOLENTINO")');
+          if (!ok) throw new Error('Spazio Conad Tolentino non compare nella lista');
+          await p.waitForTimeout(1200);
+        });
+
+        // 6) Conferma il negozio (+ eventuale "Procedi" della modale di avviso).
+        await passo('Conferma il negozio', async () => {
+          const ok = await cliccaVisibile(p, '#modal-onboarding .btn-conferma-pdv button, .btn-conferma-pdv button, button:has-text("Conferma il negozio")');
+          if (!ok) throw new Error('tasto non trovato');
+          await p.waitForTimeout(2000);
+          await cliccaVisibile(p, '#modalModificaNegozio button:has-text("Procedi"), button:has-text("Procedi")');
+          await p.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+          await p.waitForTimeout(1500);
+        });
+
+        const negozio = await p.evaluate(() => {
+          const pos = window.pointOfService;
+          return pos && pos.address ? (pos.address.town || pos.name || '') : '';
+        }).catch(() => '');
+        return {
+          url: p.url(),
+          messaggio: negozio ? `negozio scelto: ${negozio} ✅ ora fai la spesa` : 'fatto, ma non vedo ancora il negozio: premi Aggiorna e guarda in alto nella foto',
+        };
       }
       default:
         throw new Error(`azione sconosciuta: ${a.tipo}`);

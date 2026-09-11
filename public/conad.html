@@ -32,7 +32,17 @@
         <button id="scorri-su" type="button">▲</button>
         <button id="scorri-giu" type="button">▼</button>
         <button id="aggiorna" type="button">Aggiorna</button>
-        <button id="clic-conad" type="button" style="background:#e8590c;color:#fff;border:none;font-weight:700;">👆 Premi il tasto arancione (Conferma/Verifica)</button>
+      </div>
+
+      <div class="barra" style="flex-direction:column;align-items:stretch;gap:0.4rem;background:#fff3e8;padding:0.75rem;border-radius:12px;">
+        <strong style="color:#8a3c00">Negozio (da fare una volta)</strong>
+        <button id="scegli-negozio" type="button" style="background:#e8590c;color:#fff;border:none;font-weight:700;padding:0.7rem;">🏪 Scegli Tolentino + ritiro (automatico)</button>
+        <small style="color:var(--testo-tenue)">Fa tutto da solo: indirizzo, Ordina e ritira, Spazio Conad Contrada Cisterna, Conferma. Aspetta 20-30 secondi.</small>
+        <div class="barra" style="margin:0;">
+          <input id="clic-nome" type="text" placeholder="Oppure scrivi il testo di un tasto che vedi nella foto (es. Conferma il negozio)" />
+          <button id="clic-nome-btn" type="button" class="primario">Clicca per nome</button>
+          <button id="clic-conad" type="button" title="Prova da solo Conferma/Procedi/Verifica/Seleziona">👆 Tasto arancione</button>
+        </div>
       </div>
 
       <div class="barra login-conad" style="flex-direction:column;align-items:stretch;gap:0.4rem;background:var(--accento-tenue,#dff0e6);padding:0.75rem;border-radius:12px;">

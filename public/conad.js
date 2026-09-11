@@ -44,7 +44,7 @@ async function azione(corpo) {
       body: JSON.stringify(corpo),
     });
     const dati = await risposta.json();
-    stato.textContent = risposta.ok ? '' : dati.errore || 'Non ha funzionato';
+    stato.textContent = risposta.ok ? (dati.messaggio || '') : dati.errore || 'Non ha funzionato';
   } catch (errore) {
     stato.textContent = `Errore: ${errore.message}`;
   } finally {
@@ -82,6 +82,35 @@ document.getElementById('scorri-giu').addEventListener('click', () => azione({ t
 document.getElementById('aggiorna').addEventListener('click', aggiorna);
 const btnClicConad = document.getElementById('clic-conad');
 if (btnClicConad) btnClicConad.addEventListener('click', () => azione({ tipo: 'clic-conad' }));
+
+// Clicca qualsiasi tasto per il testo che si legge nella foto (niente coordinate).
+const campoNome = document.getElementById('clic-nome');
+const btnNome = document.getElementById('clic-nome-btn');
+if (campoNome && btnNome) {
+  const clicca = () => {
+    const testo = campoNome.value.trim();
+    if (!testo) { stato.textContent = 'Scrivi il testo del tasto (es. Conferma il negozio).'; return; }
+    azione({ tipo: 'clic-testo', testo });
+  };
+  btnNome.addEventListener('click', clicca);
+  campoNome.addEventListener('keydown', (evento) => { if (evento.key === 'Enter') clicca(); });
+}
+
+// Scelta negozio automatica: Tolentino + ritiro, fatta dal server.
+const btnNegozio = document.getElementById('scegli-negozio');
+if (btnNegozio) {
+  btnNegozio.addEventListener('click', async () => {
+    btnNegozio.disabled = true;
+    const orig = btnNegozio.textContent;
+    btnNegozio.textContent = 'Scelgo il negozio… (20-30 s)';
+    try {
+      await azione({ tipo: 'scegli-negozio' });
+    } finally {
+      btnNegozio.disabled = false;
+      btnNegozio.textContent = orig;
+    }
+  });
+}
 
 function avviaAggiornamento() {
   clearInterval(timer);
