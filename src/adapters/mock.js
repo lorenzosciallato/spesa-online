@@ -1,5 +1,8 @@
+import { costoPer } from '../scoring.js';
+
 // Catalogo finto, serve a sviluppare e testare interfaccia e motore di scelta
-// senza dipendere dal sito Conad. Stessa forma dei dati dell'adapter reale.
+// senza dipendere dal sito Conad. Stessa forma dei dati dell'adapter reale,
+// carrello in memoria.
 
 const CATALOGO = [
   // latte
@@ -39,6 +42,9 @@ const CATALOGO = [
 
 export const nome = 'mock';
 
+// Carrello finto in memoria: id -> { prodotto, quantita }.
+const carrello = new Map();
+
 export async function cerca(query) {
   const q = query.toLowerCase().trim();
   if (!q) return [];
@@ -52,6 +58,38 @@ export async function cerca(query) {
   return risultati.map((p) => ({ ...p, disponibile: p.disponibile !== false }));
 }
 
-export async function aggiungiAlCarrello() {
-  throw new Error("L'adapter mock non ha un carrello reale");
+export async function aggiungiAlCarrello(prodotto, quantita) {
+  const originale = CATALOGO.find((p) => p.id === prodotto.id);
+  if (!originale) throw new Error(`prodotto sconosciuto: ${prodotto.id}`);
+  if (originale.disponibile === false) throw new Error('prodotto esaurito');
+  const voluta = Math.max(1, Math.round(quantita || 1));
+  carrello.set(prodotto.id, { prodotto: originale, quantita: voluta });
+  return { ok: true, quantita: voluta };
 }
+
+export async function leggiCarrello() {
+  const righe = [...carrello.values()].map(({ prodotto, quantita }) => ({
+    nome: prodotto.nome,
+    marca: prodotto.marca,
+    quantita,
+    prezzo: Math.round(costoPer(prodotto, quantita) * 100) / 100,
+  }));
+  const totale = righe.reduce((s, r) => s + r.prezzo, 0);
+  return { righe, totale: Math.round(totale * 100) / 100 };
+}
+
+export async function svuotaCarrello() {
+  carrello.clear();
+}
+
+export async function stato() {
+  return {
+    pronto: true,
+    loggato: true,
+    puntoVendita: 'Conad Tolentino (finto)',
+    modalita: 'ritiro in negozio',
+    problemi: [],
+  };
+}
+
+export async function chiudi() {}

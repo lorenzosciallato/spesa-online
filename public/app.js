@@ -11,6 +11,10 @@ const bottonePulisci = document.getElementById('pulisci');
 const contenitoreRisultati = document.getElementById('risultati');
 const riepilogo = document.getElementById('riepilogo');
 const elementoTotale = document.getElementById('totale');
+const statoSessione = document.getElementById('stato-sessione');
+const sezioneInvio = document.getElementById('invio');
+const bottoneCarrello = document.getElementById('metti-nel-carrello');
+const rapporto = document.getElementById('rapporto');
 
 // Stato del carrello in memoria, cosi la sostituzione non richiede
 // di rifare tutta la ricerca.
@@ -149,8 +153,119 @@ bottonePulisci.addEventListener('click', () => {
   carrello = [];
   contenitoreRisultati.innerHTML = '';
   riepilogo.hidden = true;
+  sezioneInvio.hidden = true;
+  rapporto.hidden = true;
+  rapporto.innerHTML = '';
   statoVoce.textContent = '';
 });
+
+/* ---------- stato della sessione sul sito ---------- */
+
+// Chiede al server se sul sito siamo loggati, sul Conad di Tolentino e in
+// ritiro in negozio. Non blocca nulla: mostra solo un avviso.
+async function controllaSessione() {
+  try {
+    const risposta = await fetch('/api/stato');
+    const stato = await risposta.json();
+    if (stato.catalogo === 'mock') {
+      statoSessione.textContent = 'Catalogo di prova: i prodotti sono finti. Avvia con CATALOGO=conad per il sito vero.';
+      statoSessione.classList.remove('ok');
+      statoSessione.hidden = false;
+      return;
+    }
+    if (stato.pronto) {
+      statoSessione.textContent = `Sito pronto: ${stato.puntoVendita || 'Tolentino'}, ${stato.modalita || 'ritiro in negozio'}.`;
+      statoSessione.classList.add('ok');
+    } else {
+      statoSessione.textContent = `Controlla la sessione sul sito (${stato.problemi.join('; ')}). Esegui "npm run conad:login".`;
+      statoSessione.classList.remove('ok');
+    }
+    statoSessione.hidden = false;
+  } catch {
+    statoSessione.hidden = true;
+  }
+}
+
+controllaSessione();
+
+/* ---------- invio al carrello del sito ---------- */
+
+bottoneCarrello.addEventListener('click', async () => {
+  const voci = carrello
+    .filter((r) => r.stato === 'ok')
+    .map((r) => ({ prodotto: r.scelta.prodotto, quantita: r.scelta.quantita }));
+  if (voci.length === 0) return;
+
+  bottoneCarrello.disabled = true;
+  bottoneCarrello.textContent = 'Aggiungo…';
+  rapporto.hidden = false;
+  rapporto.innerHTML = '';
+  rapporto.append(creaElemento('p', { class: 'vuoto' }, 'Sto mettendo i prodotti nel carrello del sito, ci vuole qualche secondo per ciascuno.'));
+
+  try {
+    const risposta = await fetch('/api/carrello', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voci }),
+    });
+    const dati = await risposta.json();
+    if (!risposta.ok) throw new Error(dati.errore || 'Errore del server');
+    disegnaRapporto(dati);
+  } catch (errore) {
+    rapporto.innerHTML = '';
+    rapporto.append(creaElemento('p', { class: 'vuoto' }, `Non ha funzionato: ${errore.message}`));
+  } finally {
+    bottoneCarrello.disabled = false;
+    bottoneCarrello.textContent = 'Metti nel carrello Conad';
+  }
+});
+
+// Il rapporto finale: cosa c'e' nel carrello, il totale, cosa e' stato saltato.
+function disegnaRapporto(dati) {
+  rapporto.innerHTML = '';
+
+  const messi = creaElemento('article', { class: 'voce' }, creaElemento('h2', {}, 'Nel carrello'));
+  const righe = dati.carrello && dati.carrello.righe ? dati.carrello.righe : null;
+  if (righe && righe.length > 0) {
+    messi.append(
+      creaElemento('ul', {}, righe.map((r) => creaElemento(
+        'li', {},
+        `${r.nome}${r.marca ? ` · ${r.marca}` : ''} × ${r.quantita} — ${euro.format(r.prezzo)}`,
+      ))),
+      creaElemento('p', { class: 'totale-rapporto' }, `Totale: ${euro.format(dati.carrello.totale)}`),
+    );
+  } else if (dati.aggiunti.length > 0) {
+    messi.append(
+      creaElemento('ul', {}, dati.aggiunti.map((a) => creaElemento(
+        'li', {},
+        `${a.prodotto.nome}${a.prodotto.marca ? ` · ${a.prodotto.marca}` : ''} × ${a.quantita}`,
+      ))),
+      creaElemento('p', { class: 'dettagli' }, dati.carrello && dati.carrello.errore
+        ? `Non sono riuscito a rileggere il carrello del sito: ${dati.carrello.errore}`
+        : 'Totale non letto dal sito.'),
+    );
+  } else {
+    messi.append(creaElemento('p', { class: 'dettagli' }, 'Niente aggiunto.'));
+  }
+  rapporto.append(messi);
+
+  const saltati = [
+    ...carrello.filter((r) => r.stato !== 'ok').map((r) => `${r.voce.grezzo}: ${r.messaggio}`),
+    ...dati.falliti.map((f) => `${f.prodotto.nome} × ${f.quantita}: ${f.motivo}`),
+  ];
+  if (saltati.length > 0) {
+    rapporto.append(creaElemento(
+      'article', { class: 'voce saltata' },
+      creaElemento('h2', {}, 'Saltati'),
+      creaElemento('ul', {}, saltati.map((t) => creaElemento('li', {}, t))),
+    ));
+  }
+
+  rapporto.append(creaElemento(
+    'p', { class: 'nota' },
+    'Mi fermo qui: orario di ritiro e pagamento li scegli tu sul sito.',
+  ));
+}
 
 /* ---------- rendering ---------- */
 
@@ -295,6 +410,7 @@ function disegna() {
       creaElemento('p', { class: 'vuoto' }, 'Niente da mostrare.'),
     );
     riepilogo.hidden = true;
+    sezioneInvio.hidden = true;
     return;
   }
 
@@ -308,4 +424,5 @@ function disegna() {
 
   elementoTotale.textContent = euro.format(totale);
   riepilogo.hidden = false;
+  sezioneInvio.hidden = !carrello.some((r) => r.stato === 'ok');
 }

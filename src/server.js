@@ -11,15 +11,24 @@ import { scegliMigliore } from './scoring.js';
 
 const RADICE = fileURLToPath(new URL('..', import.meta.url));
 const PUBLIC = join(RADICE, 'public');
-const PORTA = Number(process.env.PORT) || 3000;
+const PORTA = process.env.PORT === undefined ? 3000 : Number(process.env.PORT);
 
 const catalogo = await caricaCatalogo();
 
 async function caricaCatalogo() {
   const scelto = process.env.CATALOGO || 'mock';
+  if (!/^[a-z]+$/.test(scelto)) throw new Error(`Catalogo non valido: ${scelto}`);
   const modulo = await import(`./adapters/${scelto}.js`);
   console.log(`Catalogo attivo: ${modulo.nome}`);
   return modulo;
+}
+
+// Alla chiusura spengo anche il browser dell'adapter, se c'e'.
+for (const segnale of ['SIGINT', 'SIGTERM']) {
+  process.once(segnale, async () => {
+    await catalogo.chiudi?.().catch(() => {});
+    process.exit(0);
+  });
 }
 
 const MIME = {
@@ -122,6 +131,53 @@ async function gestisciRicerca(req, res, url) {
   });
 }
 
+// Stato della sessione sul sito: loggato? Tolentino? ritiro in negozio?
+async function gestisciStato(res) {
+  if (!catalogo.stato) {
+    return inviaJson(res, 200, { catalogo: catalogo.nome, pronto: true, problemi: [] });
+  }
+  try {
+    inviaJson(res, 200, { catalogo: catalogo.nome, ...(await catalogo.stato()) });
+  } catch (errore) {
+    inviaJson(res, 200, {
+      catalogo: catalogo.nome,
+      pronto: false,
+      problemi: [`non riesco ad aprire il sito: ${errore.message}`],
+    });
+  }
+}
+
+// Mette nel carrello del sito le scelte confermate dall'interfaccia.
+// Si ferma qui: niente orario di ritiro, niente pagamento.
+async function gestisciCarrello(req, res) {
+  const corpo = await leggiCorpo(req);
+  const voci = Array.isArray(corpo.voci) ? corpo.voci : [];
+  if (voci.length === 0) return inviaJson(res, 400, { errore: 'Niente da aggiungere' });
+
+  const aggiunti = [];
+  const falliti = [];
+  // Uno alla volta: l'adapter reale guida un solo browser.
+  for (const { prodotto, quantita } of voci) {
+    if (!prodotto || !prodotto.nome) continue;
+    try {
+      const esito = await catalogo.aggiungiAlCarrello(prodotto, quantita);
+      if (esito.ok) aggiunti.push({ prodotto, quantita: esito.quantita, nota: esito.nota });
+      else falliti.push({ prodotto, quantita, motivo: `nel carrello ne risultano ${esito.quantita}` });
+    } catch (errore) {
+      falliti.push({ prodotto, quantita, motivo: errore.message });
+    }
+  }
+
+  let carrello = null;
+  try {
+    carrello = catalogo.leggiCarrello ? await catalogo.leggiCarrello() : null;
+  } catch (errore) {
+    carrello = { errore: errore.message };
+  }
+
+  inviaJson(res, 200, { catalogo: catalogo.nome, aggiunti, falliti, carrello });
+}
+
 async function serviStatico(res, percorso) {
   const relativo = percorso === '/' ? '/index.html' : percorso;
   // normalize + controllo prefisso: niente uscite da /public con "..".
@@ -153,6 +209,12 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/cerca') {
       return await gestisciRicerca(req, res, url);
     }
+    if (req.method === 'GET' && url.pathname === '/api/stato') {
+      return await gestisciStato(res);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/carrello') {
+      return await gestisciCarrello(req, res);
+    }
     if (req.method === 'GET') {
       return await serviStatico(res, url.pathname);
     }
@@ -164,5 +226,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORTA, () => {
-  console.log(`Spesa in ascolto su http://localhost:${PORTA}`);
+  console.log(`Spesa in ascolto su http://localhost:${server.address().port}`);
 });
