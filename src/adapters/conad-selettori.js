@@ -14,7 +14,7 @@ export const BASE_URL = process.env.CONAD_BASE_URL || 'https://spesaonline.conad
 // Pagine del sito.
 // L'indirizzo di ricerca si puo' cambiare senza toccare il codice:
 //   CONAD_URL_RICERCA='/ricerca?testo={q}'
-const URL_RICERCA = process.env.CONAD_URL_RICERCA || '/search?q={q}';
+const URL_RICERCA = process.env.CONAD_URL_RICERCA || '/search?query={q}';
 
 export const PAGINE = {
   home: '/',

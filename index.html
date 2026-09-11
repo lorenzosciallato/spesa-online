@@ -129,7 +129,7 @@
       riga.innerHTML = `
         <input type="checkbox" ${v.fatta ? 'checked' : ''} aria-label="Messo nel carrello">
         <span class="nome">${escapa(v.nome)}${q ? `<small>${escapa(q)}</small>` : ''}</span>
-        <a href="https://spesaonline.conad.it/search?q=${encodeURIComponent(v.nome)}" target="_blank" rel="noopener">Cerca</a>
+        <a href="https://spesaonline.conad.it/search?query=${encodeURIComponent(v.nome)}" target="_blank" rel="noopener">Cerca</a>
         <button class="togli" type="button" aria-label="Togli">✕</button>`;
       riga.querySelector('input').onchange = (e) => { v.fatta = e.target.checked; salva(); disegna(); };
       riga.querySelector('a').onclick = () => { setTimeout(() => { if (!v.fatta) riga.querySelector('input').focus(); }, 300); };
