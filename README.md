@@ -1,5 +1,28 @@
 # Spesa
 
+## Per la famiglia: come si usa
+
+L'app da usare dal telefono e dal Chromebook e la pagina `index.html` di
+questa cartella (online all'indirizzo della pagina GitHub del progetto).
+
+1. Tocca il microfono e detta la lista, oppure scrivila: "latte x6, pasta, pane".
+2. Tocca **Prepara la lista**: esce una riga per prodotto con la quantita.
+3. Per ogni riga tocca **Cerca**: si apre Conad gia sul prodotto. Tocca
+   **Aggiungi** su quello che costa meno a confezione, torna alla lista e
+   spunta la riga.
+4. Alla fine controlla il carrello su Conad, scegli l'orario di ritiro e paga.
+
+La prima volta sul telefono bisogna entrare su spesaonline.conad.it con il
+proprio account e scegliere Conad Tolentino con ritiro in negozio. Poi resta.
+
+Tutto quello che segue e la versione automatica, che sceglie da sola il
+prodotto piu conveniente e riempie il carrello: serve un computer Windows o
+Mac acceso in casa che la faccia girare. Se non ce l'hai, fermati qui.
+
+---
+
+## Versione automatica
+
 Web app per dettare a voce la lista della spesa e farsi riempire il carrello
 di spesaonline.conad.it con i prodotti piu convenienti, potendo sostituire
 ogni scelta con alternative simili.

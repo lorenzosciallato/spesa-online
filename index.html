@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spesa Conad</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+<style>
+  :root {
+    --sfondo: #f6f6f4; --superficie: #fff; --bordo: #e2e0db; --testo: #1c1b19;
+    --tenue: #6b6862; --rosso: #c8102e; --rosso-tenue: #fdeef0; --verde: #1c7c4a; --verde-tenue: #e8f4ed;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 1rem 1rem 3rem; background: var(--sfondo); color: var(--testo); font: 18px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin: 0.25rem 0 0; }
+  .sotto { margin: 0 0 1rem; color: var(--tenue); }
+  .scheda { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 16px; padding: 1rem; margin-bottom: 1rem; }
+  .passo { display: flex; gap: 0.6rem; align-items: baseline; margin: 0 0 0.5rem; font-weight: 600; }
+  .passo .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--rosso); color: #fff; font-size: 0.95rem; flex: none; }
+  button { font: inherit; cursor: pointer; border-radius: 12px; }
+  .grande { display: block; width: 100%; padding: 1rem; font-size: 1.15rem; font-weight: 600; border: none; background: var(--rosso); color: #fff; }
+  .grande:disabled { opacity: 0.5; }
+  .secondario { display: block; width: 100%; padding: 0.8rem; font-size: 1.05rem; border: 1px solid var(--bordo); background: var(--superficie); color: var(--testo); margin-top: 0.5rem; }
+  .mic { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: 100%; padding: 1rem; font-size: 1.15rem; font-weight: 600; border: 2px solid var(--bordo); background: var(--superficie); color: var(--testo); }
+  .mic.ascolto { border-color: var(--rosso); background: var(--rosso-tenue); }
+  .mic .pallino { width: 14px; height: 14px; border-radius: 50%; background: var(--tenue); }
+  .mic.ascolto .pallino { background: var(--rosso); animation: pulsa 1s infinite; }
+  @keyframes pulsa { 50% { opacity: 0.2; } }
+  textarea { width: 100%; margin-top: 0.6rem; padding: 0.8rem; font: inherit; border: 1px solid var(--bordo); border-radius: 12px; background: var(--sfondo); color: var(--testo); resize: vertical; }
+  .stato { min-height: 1.4em; margin: 0.4rem 0 0; color: var(--tenue); font-size: 0.95rem; }
+  .avviso { background: var(--rosso-tenue); border: 1px solid var(--rosso); border-radius: 12px; padding: 0.7rem 0.9rem; font-size: 0.95rem; margin-bottom: 1rem; }
+  .avviso a { color: var(--rosso); font-weight: 600; }
+  .riga { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 0; border-top: 1px solid var(--bordo); }
+  .riga:first-child { border-top: none; }
+  .riga input[type=checkbox] { width: 1.6rem; height: 1.6rem; flex: none; accent-color: var(--verde); }
+  .riga .nome { flex: 1; font-weight: 600; }
+  .riga .nome small { display: block; font-weight: 400; color: var(--tenue); }
+  .riga.fatta .nome { text-decoration: line-through; color: var(--tenue); }
+  .riga a { flex: none; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--rosso); color: #fff; text-decoration: none; font-weight: 600; white-space: nowrap; }
+  .riga.fatta a { background: var(--tenue); }
+  .togli { flex: none; border: none; background: none; color: var(--tenue); font-size: 1.3rem; padding: 0.2rem 0.4rem; }
+  .fine { background: var(--verde-tenue); border: 1px solid var(--verde); border-radius: 12px; padding: 0.8rem; margin-top: 0.8rem; }
+  .fine a { color: var(--verde); font-weight: 700; }
+  .nota { color: var(--tenue); font-size: 0.9rem; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🛒 Spesa Conad</h1>
+  <p class="sotto">Conad di Tolentino · ritiro in negozio</p>
+
+  <div class="avviso">
+    Prima volta sul telefono? Apri <a href="https://spesaonline.conad.it/" target="_blank" rel="noopener">spesaonline.conad.it</a>, fai l'accesso e scegli <b>Conad Tolentino</b> con <b>Ritiro in negozio</b>. Basta una volta.
+  </div>
+
+  <section class="scheda">
+    <p class="passo"><span class="n">1</span> Detta o scrivi la lista</p>
+    <button id="mic" class="mic" type="button"><span class="pallino"></span><span id="mic-testo">Detta la lista</span></button>
+    <textarea id="lista" rows="3" placeholder="latte x6, pasta, pane, carta igienica"></textarea>
+    <p id="stato" class="stato"></p>
+    <button id="prepara" class="grande" type="button">Prepara la lista</button>
+  </section>
+
+  <section id="sezione-lista" class="scheda" hidden>
+    <p class="passo"><span class="n">2</span> Per ogni prodotto tocca <b>Cerca</b>, poi su Conad tocca <b>Aggiungi</b> e torna qui</p>
+    <div id="righe"></div>
+    <div class="fine">
+      <p class="passo" style="margin:0 0 .3rem"><span class="n">3</span> Finito?</p>
+      Controlla il <a href="https://spesaonline.conad.it/cartdetail" target="_blank" rel="noopener">carrello su Conad</a>, poi scegli l'orario di ritiro e paga da lì.
+    </div>
+    <button id="svuota" class="secondario" type="button">Nuova lista</button>
+  </section>
+
+  <p class="nota">Consiglio: nella ricerca Conad ordina per prezzo e guarda il prezzo a confezione, non quello al chilo. Se un prodotto non c'è, saltalo.</p>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const lista = $('lista'), mic = $('mic'), micTesto = $('mic-testo'), stato = $('stato');
+  const righe = $('righe'), sezioneLista = $('sezione-lista');
+
+  /* ---- salvataggio: la lista resta anche se chiudi la pagina ---- */
+  let voci = [];
+  try { voci = JSON.parse(localStorage.getItem('spesa-voci') || '[]'); } catch {}
+  const salva = () => { try { localStorage.setItem('spesa-voci', JSON.stringify(voci)); } catch {} };
+
+  /* ---- capire "latte x6", "2 kg di pane", "tre bottiglie di acqua" ---- */
+  const NUMERI = { un:1, uno:1, una:1, due:2, tre:3, quattro:4, cinque:5, sei:6, sette:7, otto:8, nove:9, dieci:10, dodici:12 };
+  const UNITA = /^(confezion[ei]|pacch[oi]|pacchett[oi]|bottigli[ae]|barattol[oi]|vasett[oi]|scatol[ae]|bust[ae]|pezz[oi]|pz|kg|chil[oi]|g|gr|gramm[oi]|ett[oi]|l|litr[oi]|ml)$/;
+  const ARTICOLI = /^(di|del|della|dello|dei|degli|delle|un|uno|una|il|lo|la|i|gli|le)$/;
+
+  function capisci(grezzo) {
+    let t = grezzo.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim();
+    let q = null, unita = '';
+    let m = t.match(/\s+(?:x|per)\s*(\d+)\s*$/);
+    if (m) { q = +m[1]; t = t.slice(0, m.index).trim(); }
+    if (q === null) { m = t.match(/^(\d+)\s*x\s+(.+)$/); if (m) { q = +m[1]; t = m[2]; } }
+    if (q === null) {
+      const p = t.split(' ');
+      const n = /^\d+([.,]\d+)?$/.test(p[0]) ? parseFloat(p[0].replace(',', '.')) : (NUMERI[p[0]] ?? null);
+      if (n !== null && p.length > 1) {
+        q = n; p.shift();
+        if (UNITA.test(p[0])) { unita = p[0]; p.shift(); }
+        t = p.join(' ');
+      }
+    }
+    const parole = t.split(' ');
+    while (parole.length > 1 && ARTICOLI.test(parole[0])) parole.shift();
+    const nome = parole.join(' ').trim();
+    if (!nome || nome.length < 2) return null;
+    return { nome, quantita: q ?? 1, unita, fatta: false };
+  }
+
+  function dividi(testo) {
+    return testo.toLowerCase().split(/[,;\n]+|\s+e\s+|\s+poi\s+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  /* ---- disegno ---- */
+  function disegna() {
+    righe.innerHTML = '';
+    sezioneLista.hidden = voci.length === 0;
+    voci.forEach((v, i) => {
+      const riga = document.createElement('div');
+      riga.className = 'riga' + (v.fatta ? ' fatta' : '');
+      const q = v.quantita !== 1 || v.unita ? `${v.quantita} ${v.unita || (v.quantita > 1 ? 'confezioni' : '')}`.trim() : '';
+      riga.innerHTML = `
+        <input type="checkbox" ${v.fatta ? 'checked' : ''} aria-label="Messo nel carrello">
+        <span class="nome">${escapa(v.nome)}${q ? `<small>${escapa(q)}</small>` : ''}</span>
+        <a href="https://spesaonline.conad.it/search?q=${encodeURIComponent(v.nome)}" target="_blank" rel="noopener">Cerca</a>
+        <button class="togli" type="button" aria-label="Togli">✕</button>`;
+      riga.querySelector('input').onchange = (e) => { v.fatta = e.target.checked; salva(); disegna(); };
+      riga.querySelector('a').onclick = () => { setTimeout(() => { if (!v.fatta) riga.querySelector('input').focus(); }, 300); };
+      riga.querySelector('.togli').onclick = () => { voci.splice(i, 1); salva(); disegna(); };
+      righe.append(riga);
+    });
+  }
+  const escapa = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  $('prepara').onclick = () => {
+    const testo = lista.value.trim();
+    if (!testo) { stato.textContent = 'Prima detta o scrivi qualcosa.'; return; }
+    if (ascolto) ferma();
+    const nuove = dividi(testo).map(capisci).filter(Boolean);
+    voci = [...voci, ...nuove.filter((n) => !voci.some((v) => v.nome === n.nome))];
+    salva(); disegna();
+    lista.value = ''; stato.textContent = '';
+    sezioneLista.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  $('svuota').onclick = () => {
+    if (voci.length && !confirm('Cancello la lista?')) return;
+    voci = []; salva(); disegna(); lista.value = '';
+  };
+
+  /* ---- dettatura (funziona su Chrome e Android; su iPhone si scrive) ---- */
+  const Ric = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let ric = null, ascolto = false, base = '';
+  if (!Ric) {
+    mic.disabled = true; micTesto.textContent = 'Dettatura non disponibile qui: scrivi la lista';
+  } else {
+    ric = new Ric(); ric.lang = 'it-IT'; ric.continuous = true; ric.interimResults = true;
+    ric.onresult = (e) => {
+      let fin = '', prov = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) (e.results[i].isFinal ? (fin += e.results[i][0].transcript) : (prov += e.results[i][0].transcript));
+      if (fin) base = unisci(base, fin);
+      lista.value = unisci(base, prov);
+    };
+    ric.onerror = (e) => { stato.textContent = e.error === 'not-allowed' ? 'Devi permettere il microfono.' : 'Errore microfono: ' + e.error; ferma(); };
+    ric.onend = () => { if (ascolto) ferma(); };
+  }
+  const unisci = (a, b) => { b = b.trim(); if (!b) return a; if (!a.trim()) return b; return a.replace(/[,\s]+$/, '') + ', ' + b; };
+  function avvia() {
+    base = lista.value;
+    try { ric.start(); } catch { return; }
+    ascolto = true; mic.classList.add('ascolto'); micTesto.textContent = 'Sto ascoltando… tocca per fermare';
+    stato.textContent = 'Dì i prodotti uno dopo l’altro, poi tocca di nuovo.';
+  }
+  function ferma() {
+    ascolto = false; try { ric && ric.stop(); } catch {}
+    mic.classList.remove('ascolto'); micTesto.textContent = 'Detta la lista';
+  }
+  mic.onclick = () => (ascolto ? (ferma(), stato.textContent = '') : avvia());
+
+  disegna();
+})();
+</script>
+</body>
+</html>
