@@ -15,6 +15,19 @@ const PORTA = process.env.PORT === undefined ? 3000 : Number(process.env.PORT);
 
 const catalogo = await caricaCatalogo();
 
+// Se l'app sta su un server raggiungibile da internet, una password
+// (SPESA_PASSWORD) protegge tutto: pagine, API e finestra sul browser.
+const PASSWORD = process.env.SPESA_PASSWORD || '';
+
+function autorizzato(req) {
+  if (!PASSWORD) return true;
+  const intestazione = req.headers.authorization || '';
+  if (!intestazione.startsWith('Basic ')) return false;
+  const decodificato = Buffer.from(intestazione.slice(6), 'base64').toString('utf8');
+  const data = decodificato.slice(decodificato.indexOf(':') + 1);
+  return data === PASSWORD;
+}
+
 async function caricaCatalogo() {
   const scelto = process.env.CATALOGO || 'mock';
   if (!/^[a-z]+$/.test(scelto)) throw new Error(`Catalogo non valido: ${scelto}`);
@@ -178,6 +191,31 @@ async function gestisciCarrello(req, res) {
   inviaJson(res, 200, { catalogo: catalogo.nome, aggiunti, falliti, carrello });
 }
 
+// Finestra sul browser del server: screenshot e comandi.
+async function gestisciSchermo(res) {
+  if (!catalogo.schermo) return inviaJson(res, 404, { errore: 'Il catalogo attivo non ha un browser' });
+  const { immagine, url, larghezza, altezza } = await catalogo.schermo();
+  res.writeHead(200, {
+    'Content-Type': 'image/jpeg',
+    'Content-Length': immagine.length,
+    'Cache-Control': 'no-store',
+    'X-Url': encodeURI(url),
+    'X-Larghezza': larghezza,
+    'X-Altezza': altezza,
+  });
+  res.end(immagine);
+}
+
+async function gestisciAzione(req, res) {
+  if (!catalogo.azione) return inviaJson(res, 404, { errore: 'Il catalogo attivo non ha un browser' });
+  const corpo = await leggiCorpo(req);
+  try {
+    inviaJson(res, 200, await catalogo.azione(corpo));
+  } catch (errore) {
+    inviaJson(res, 400, { errore: errore.message });
+  }
+}
+
 async function serviStatico(res, percorso) {
   const relativo = percorso === '/' ? '/index.html' : percorso;
   // normalize + controllo prefisso: niente uscite da /public con "..".
@@ -202,6 +240,14 @@ async function serviStatico(res, percorso) {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
+  if (!autorizzato(req)) {
+    res.writeHead(401, {
+      'WWW-Authenticate': 'Basic realm="Spesa", charset="UTF-8"',
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    return res.end('Serve la password');
+  }
+
   try {
     if (req.method === 'POST' && url.pathname === '/api/spesa') {
       return await gestisciSpesa(req, res);
@@ -214,6 +260,12 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/carrello') {
       return await gestisciCarrello(req, res);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/browser/schermo') {
+      return await gestisciSchermo(res);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/browser/azione') {
+      return await gestisciAzione(req, res);
     }
     if (req.method === 'GET') {
       return await serviStatico(res, url.pathname);

@@ -177,7 +177,12 @@ async function controllaSessione() {
       statoSessione.textContent = `Sito pronto: ${stato.puntoVendita || 'Tolentino'}, ${stato.modalita || 'ritiro in negozio'}.`;
       statoSessione.classList.add('ok');
     } else {
-      statoSessione.textContent = `Controlla la sessione sul sito (${stato.problemi.join('; ')}). Esegui "npm run conad:login".`;
+      statoSessione.textContent = '';
+      statoSessione.append(
+        `Sul sito Conad ${stato.problemi.join(', ')}. `,
+        creaElemento('a', { href: '/conad.html' }, 'Apri il sito Conad da qui'),
+        ' per fare l\'accesso e scegliere Tolentino con ritiro in negozio.',
+      );
       statoSessione.classList.remove('ok');
     }
     statoSessione.hidden = false;

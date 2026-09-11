@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sito Conad · Spesa</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .finestra { max-width: 960px; margin: 0 auto; }
+      .barra { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+      .barra input[type="text"] { flex: 1 1 200px; padding: 0.6rem 0.75rem; border: 1px solid var(--bordo); border-radius: 10px; font: inherit; background: var(--superficie); color: var(--testo); }
+      .barra button { padding: 0.55rem 0.9rem; border: 1px solid var(--bordo); border-radius: 10px; background: var(--superficie); color: var(--testo); font: inherit; cursor: pointer; }
+      .barra button.primario { border: none; background: var(--accento); color: #fff; }
+      .schermo { position: relative; width: 100%; aspect-ratio: 1280 / 900; background: #ddd; border: 1px solid var(--bordo); border-radius: 12px; overflow: hidden; cursor: crosshair; }
+      .schermo img { display: block; width: 100%; height: 100%; object-fit: fill; }
+      .indirizzo { font-size: 0.8rem; color: var(--testo-tenue); word-break: break-all; margin: 0.25rem 0 0.5rem; }
+      .istruzioni { font-size: 0.9rem; color: var(--testo-tenue); }
+      .istruzioni li { margin: 0.2rem 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sito Conad</h1>
+      <p class="sottotitolo">Questo è il browser dell'app. Cliccaci come su un sito normale: serve per fare l'accesso e scegliere Conad Tolentino con ritiro in negozio, una volta sola.</p>
+    </header>
+
+    <main class="finestra">
+      <div class="barra">
+        <button id="home" type="button">Home Conad</button>
+        <button id="indietro" type="button">← Indietro</button>
+        <button id="popup" type="button">Chiudi popup</button>
+        <button id="scorri-su" type="button">▲</button>
+        <button id="scorri-giu" type="button">▼</button>
+        <button id="aggiorna" type="button">Aggiorna</button>
+      </div>
+
+      <div class="barra">
+        <input id="testo" type="text" placeholder="Scrivi qui e premi Invia: finisce nella casella che hai cliccato" autocomplete="off" />
+        <button id="invia" class="primario" type="button">Invia</button>
+        <button id="invio" type="button">Invio ↵</button>
+        <button id="tab" type="button">Tab</button>
+        <button id="cancella" type="button">Cancella ⌫</button>
+      </div>
+
+      <div id="schermo" class="schermo"><img id="immagine" alt="Schermo del browser" /></div>
+      <p id="indirizzo" class="indirizzo"></p>
+      <p id="stato" class="stato" role="status"></p>
+
+      <ol class="istruzioni">
+        <li>Clicca su <b>Accedi</b> in alto a destra, poi clicca sulla casella dell'email, scrivi l'email qui sotto e premi <b>Invia</b>. Stessa cosa per la password.</li>
+        <li>Scegli il punto vendita <b>Conad Tolentino</b> e la modalità <b>Ritiro in negozio</b>.</li>
+        <li>Torna alla <a href="/">pagina della spesa</a>: l'avviso in alto deve diventare verde.</li>
+      </ol>
+      <p class="istruzioni">Le pagine di orario, pagamento e conferma ordine sono bloccate anche da qui: l'app non può mai completare un ordine.</p>
+    </main>
+
+    <script src="/conad.js"></script>
+  </body>
+</html>

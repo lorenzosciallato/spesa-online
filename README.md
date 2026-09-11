@@ -16,8 +16,30 @@ La prima volta sul telefono bisogna entrare su spesaonline.conad.it con il
 proprio account e scegliere Conad Tolentino con ritiro in negozio. Poi resta.
 
 Tutto quello che segue e la versione automatica, che sceglie da sola il
-prodotto piu conveniente e riempie il carrello: serve un computer Windows o
-Mac acceso in casa che la faccia girare. Se non ce l'hai, fermati qui.
+prodotto piu conveniente e riempie il carrello: serve un computer sempre
+acceso (un VPS va benissimo) che la faccia girare.
+
+## Metterla su un VPS con Docker
+
+```bash
+git clone https://github.com/lorenzosciallato/spesa-online.git
+cd spesa-online
+SPESA_PASSWORD=una-password-tua docker compose up -d --build
+```
+
+Poi dal telefono o dal Chromebook si apre `http://INDIRIZZO-DEL-VPS:3000`
+(chiede la password scelta). La prima volta:
+
+1. l'avviso in alto dice che sul sito Conad non si e loggati: clicca
+   **Apri il sito Conad da qui**;
+2. si vede il browser del server: clicca su Accedi, scrivi email e password
+   nella casella in basso e premi Invia, scegli Conad Tolentino e Ritiro in
+   negozio;
+3. torna alla pagina della spesa: l'avviso diventa verde. Da li in poi la
+   sessione resta salvata nel volume `spesa-dati`.
+
+Se il sito Conad usa un indirizzo di ricerca diverso da `/search?q=...`,
+passalo cosi: `CONAD_URL_RICERCA='/ricerca?testo={q}' docker compose up -d`.
 
 ---
 
