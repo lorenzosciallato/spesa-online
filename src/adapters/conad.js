@@ -832,27 +832,44 @@ export function azione(a) {
           await p.waitForTimeout(3000);
         });
 
-        // 5) Il negozio Spazio Conad di Tolentino nella lista.
-        await passo('negozio Tolentino', async () => {
-          const ok = await cliccaVisibile(p, '.lista-negozi-section li:has-text("CISTERNA"), .lista-negozi-section li:has-text("TOLENTINO"), li:has-text("TOLENTINO")');
-          if (!ok) throw new Error('Spazio Conad Tolentino non compare nella lista');
-          await p.waitForTimeout(1200);
-        });
-
-        // 6) Conferma il negozio (+ eventuale "Procedi" della modale di avviso).
-        await passo('Conferma il negozio', async () => {
-          const ok = await cliccaVisibile(p, '#modal-onboarding .btn-conferma-pdv button, .btn-conferma-pdv button, button:has-text("Conferma il negozio")');
-          if (!ok) throw new Error('tasto non trovato');
-          await p.waitForTimeout(2000);
-          await cliccaVisibile(p, '#modalModificaNegozio button:has-text("Procedi"), button:has-text("Procedi")');
-          await p.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
-          await p.waitForTimeout(1500);
-        });
-
-        const negozio = await p.evaluate(() => {
+        // Il negozio e' scelto SOLO quando window.pointOfService e' valorizzato.
+        // Il tasto "Conferma il negozio" ha onclick vuoto: il suo comando lo
+        // arma il sito DOPO che clicchi la RIGA del negozio nella lista. Quindi:
+        // clicca la riga -> Conferma -> (eventuale Procedi) -> verifica; ritenta.
+        const negozioScelto = async () => p.evaluate(() => {
           const pos = window.pointOfService;
-          return pos && pos.address ? (pos.address.town || pos.name || '') : '';
+          if (!pos || typeof pos !== 'object') return '';
+          return (pos.address && (pos.address.town || pos.address.city)) || pos.name || 'sì';
         }).catch(() => '');
+
+        let negozio = await negozioScelto();
+        for (let tentativo = 0; !negozio && tentativo < 3; tentativo += 1) {
+          // a) accendo il negozio cliccando la sua riga (o un tasto dentro).
+          await passo('scelta del negozio nella lista', async () => {
+            const riga = await trovaVisibile(
+              p,
+              '.lista-negozi-section li:has-text("CISTERNA"), .lista-negozi-section li:has-text("TOLENTINO"), .lista-negozi-section li:has-text("Spazio Conad"), li:has-text("CISTERNA"), li:has-text("TOLENTINO")',
+            );
+            if (!riga) throw new Error('Spazio Conad Tolentino non compare nella lista');
+            // prima un eventuale tasto interno (Seleziona/Scegli), poi la riga.
+            if (!(await cliccaVisibile(riga, 'button:has-text("Seleziona"), button:has-text("Scegli"), button'))) {
+              await riga.click({ timeout: 5000 });
+            }
+            await p.waitForTimeout(1500);
+          });
+
+          // b) Conferma (ora armato) + eventuale Procedi della modale d'avviso.
+          await passo('Conferma il negozio', async () => {
+            const ok = await cliccaVisibile(p, '.btn-conferma-pdv button, #modal-onboarding .btn-conferma-pdv button, button:has-text("Conferma il negozio")');
+            if (!ok) throw new Error('tasto non trovato');
+            await p.waitForTimeout(2000);
+            await cliccaVisibile(p, '#modalModificaNegozio button:has-text("Procedi"), button:has-text("Procedi")');
+            await p.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+            await p.waitForTimeout(2000);
+          });
+
+          negozio = await negozioScelto();
+        }
         return {
           url: p.url(),
           messaggio: negozio ? `negozio scelto: ${negozio} ✅ ora fai la spesa` : 'fatto, ma non vedo ancora il negozio: premi Aggiorna e guarda in alto nella foto',
