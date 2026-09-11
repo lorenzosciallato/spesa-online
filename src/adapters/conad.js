@@ -721,6 +721,28 @@ export function azione(a) {
           messaggio: `importati ${cookie.length} cookie — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}" stato:"${diag.cond || '?'}"${ok ? ' ✅ pronto' : ' ⚠ Conad non vede il negozio per questa sessione'}`,
         };
       }
+      case 'clic-conad': {
+        // Preme il "tasto arancione" della schermata cercandolo per TESTO
+        // (non a coordinate): funziona dove il click sulla foto sbaglia mira.
+        const testi = a.testo
+          ? [String(a.testo).slice(0, 40)]
+          : ['Conferma il negozio', 'Conferma', 'Verifica', 'Continua', 'Prosegui', 'Seleziona', 'Scegli', 'Entra', 'Accedi'];
+        for (const t of testi) {
+          const b = p.locator(`button:has-text("${t}"), a:has-text("${t}"), [role="button"]:has-text("${t}")`).first();
+          try {
+            if (await b.isVisible({ timeout: 600 })) {
+              await b.scrollIntoViewIfNeeded().catch(() => {});
+              await b.click({ timeout: 5000 });
+              await p.waitForLoadState('domcontentloaded').catch(() => {});
+              await p.waitForTimeout(1000);
+              return { url: p.url(), messaggio: `premuto "${t}"` };
+            }
+          } catch {
+            /* provo il prossimo */
+          }
+        }
+        throw new Error('nessun tasto (Conferma/Verifica/Continua/Accedi) trovato in questa schermata');
+      }
       case 'clic-testo': {
         const testo = String(a.testo || '').slice(0, 40);
         const bottone = p.locator(`button:has-text("${testo}"), a:has-text("${testo}")`).first();

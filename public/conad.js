@@ -80,6 +80,8 @@ document.getElementById('popup').addEventListener('click', () => azione({ tipo: 
 document.getElementById('scorri-su').addEventListener('click', () => azione({ tipo: 'scorri', dy: -500 }));
 document.getElementById('scorri-giu').addEventListener('click', () => azione({ tipo: 'scorri', dy: 500 }));
 document.getElementById('aggiorna').addEventListener('click', aggiorna);
+const btnClicConad = document.getElementById('clic-conad');
+if (btnClicConad) btnClicConad.addEventListener('click', () => azione({ tipo: 'clic-conad' }));
 
 function avviaAggiornamento() {
   clearInterval(timer);
