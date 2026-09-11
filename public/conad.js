@@ -92,3 +92,20 @@ document.addEventListener('visibilitychange', () => {
 
 aggiorna();
 avviaAggiornamento();
+
+// Login automatico: compila email/password e preme Accedi per nome sul sito.
+const btnAccedi = document.getElementById('conad-accedi');
+if (btnAccedi) {
+  btnAccedi.addEventListener('click', async () => {
+    const email = document.getElementById('conad-email').value.trim();
+    const password = document.getElementById('conad-password').value;
+    if (!email || !password) { stato.textContent = 'Scrivi email e password Conad qui sopra.'; return; }
+    btnAccedi.disabled = true;
+    const testoOrig = btnAccedi.textContent;
+    btnAccedi.textContent = 'Accedo…';
+    await azione({ tipo: 'login-conad', email, password });
+    btnAccedi.disabled = false;
+    btnAccedi.textContent = testoOrig;
+    document.getElementById('conad-password').value = '';
+  });
+}
