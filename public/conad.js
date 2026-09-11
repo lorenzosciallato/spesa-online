@@ -109,3 +109,35 @@ if (btnAccedi) {
     document.getElementById('conad-password').value = '';
   });
 }
+
+// Import cookie: incolli il JSON esportato dal browser normale e l'app li usa.
+const btnCookie = document.getElementById('cookie-importa');
+if (btnCookie) {
+  btnCookie.addEventListener('click', async () => {
+    const dati = document.getElementById('cookie-testo').value.trim();
+    if (!dati) { stato.textContent = 'Incolla prima i cookie nel riquadro.'; return; }
+    btnCookie.disabled = true;
+    const testoOrig = btnCookie.textContent;
+    btnCookie.textContent = 'Importo…';
+    occupato = true;
+    try {
+      const risposta = await fetch('/api/browser/azione', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'cookie', dati }),
+      });
+      const esito = await risposta.json();
+      stato.textContent = risposta.ok
+        ? (esito.messaggio || 'Cookie importati. Ora sei loggato: torna alla spesa e prova.')
+        : (esito.errore || 'Non ha funzionato');
+      if (risposta.ok) document.getElementById('cookie-testo').value = '';
+    } catch (errore) {
+      stato.textContent = `Errore: ${errore.message}`;
+    } finally {
+      occupato = false;
+      btnCookie.disabled = false;
+      btnCookie.textContent = testoOrig;
+      await aggiorna();
+    }
+  });
+}

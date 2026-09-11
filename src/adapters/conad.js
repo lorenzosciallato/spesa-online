@@ -545,6 +545,37 @@ export function schermo() {
   });
 }
 
+// Normalizza i cookie esportati (Cookie-Editor/EditThisCookie o Playwright)
+// nel formato di addCookies, tenendo solo quelli del dominio conad.
+function normalizzaCookie(grezzi) {
+  const sameSite = (v, secure) => {
+    const s = String(v || '').toLowerCase();
+    if (s === 'strict') return 'Strict';
+    if (s === 'no_restriction' || s === 'none') return secure ? 'None' : 'Lax';
+    return 'Lax';
+  };
+  const out = [];
+  for (const c of grezzi || []) {
+    if (!c || !c.name || c.value == null) continue;
+    const dominio = String(c.domain || '');
+    if (!/conad/i.test(dominio)) continue;
+    const secure = Boolean(c.secure);
+    const cookie = {
+      name: String(c.name),
+      value: String(c.value),
+      domain: dominio,
+      path: c.path ? String(c.path) : '/',
+      httpOnly: Boolean(c.httpOnly),
+      secure,
+      sameSite: sameSite(c.sameSite, secure),
+    };
+    const scad = c.expirationDate ?? c.expires;
+    cookie.expires = (typeof scad === 'number' && scad > 0) ? Math.round(scad) : -1;
+    out.push(cookie);
+  }
+  return out;
+}
+
 export function azione(a) {
   return inFila(async () => {
     const p = await browser();
@@ -647,6 +678,30 @@ export function azione(a) {
         await p.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await p.waitForTimeout(1500);
         break;
+      }
+      case 'cookie': {
+        // Importa nel browser dell'app i cookie di Conad incollati dall'utente
+        // (presi dal suo browser normale, gia' loggato): salta login e reCAPTCHA.
+        let grezzi = a.dati;
+        if (typeof grezzi === 'string') {
+          let parsed;
+          try {
+            parsed = JSON.parse(grezzi);
+          } catch {
+            throw new Error('i cookie incollati non sono validi: riesportali con Cookie-Editor (Export as JSON)');
+          }
+          grezzi = Array.isArray(parsed) ? parsed : parsed.cookies;
+        } else if (grezzi && Array.isArray(grezzi.cookies)) {
+          grezzi = grezzi.cookies;
+        }
+        const cookie = normalizzaCookie(grezzi);
+        if (cookie.length === 0) {
+          throw new Error('nessun cookie di Conad trovato: esportali stando su spesaonline.conad.it da loggato');
+        }
+        await contesto.addCookies(cookie);
+        await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
+        await chiudiPopup(p).catch(() => {});
+        return { url: p.url(), messaggio: `importati ${cookie.length} cookie di Conad` };
       }
       case 'clic-testo': {
         const testo = String(a.testo || '').slice(0, 40);

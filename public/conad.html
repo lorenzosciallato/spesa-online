@@ -42,6 +42,13 @@
         <small style="color:var(--testo-tenue)">Compila email e password e premo io il tasto Accedi sul sito. Poi scegli Tolentino e ritiro in negozio sulla foto qui sotto.</small>
       </div>
 
+      <div class="barra login-cookie" style="flex-direction:column;align-items:stretch;gap:0.4rem;background:#eaf3ff;padding:0.75rem;border-radius:12px;">
+        <strong style="color:#123a6b">Accesso coi cookie (consigliato: salta il reCAPTCHA)</strong>
+        <textarea id="cookie-testo" rows="4" placeholder="Incolla qui i cookie esportati da Cookie-Editor (Export as JSON)" style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid var(--bordo);border-radius:10px;font:inherit;background:var(--superficie);color:var(--testo);"></textarea>
+        <button id="cookie-importa" class="primario" type="button" style="background:#1e5bb8;">Importa cookie e accedi</button>
+        <small style="color:var(--testo-tenue)">Nel tuo Chrome (loggato su spesaonline.conad.it) apri Cookie-Editor, premi <b>Export → Export as JSON</b>, incolla qui e premi il tasto blu.</small>
+      </div>
+
       <div class="barra">
         <input id="testo" type="text" placeholder="Scrivi qui e premi Invia: finisce nella casella che hai cliccato" autocomplete="off" />
         <button id="invia" class="primario" type="button">Invia</button>
