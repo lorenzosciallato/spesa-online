@@ -2,60 +2,89 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f6f2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>Spesa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <header>
-      <h1>Spesa</h1>
-      <p class="sottotitolo">Detta la lista, scelgo io il piu conveniente.</p>
-    </header>
+    <!-- SCHERMATA 1: la lista -->
+    <section id="schermo-lista" class="schermo">
+      <header class="testata">
+        <h1>Spesa</h1>
+        <a id="sessione" class="sessione" href="/conad.html" hidden></a>
+      </header>
 
-    <main>
-      <p id="stato-sessione" class="avviso" role="status" hidden></p>
+      <main class="contenuto">
+        <p id="vuoto" class="vuoto">
+          Tocca il microfono e di' un prodotto alla volta.<br />
+          Dopo tre secondi di silenzio, finisce nella lista.
+        </p>
+        <ul id="lista" class="lista" aria-live="polite"></ul>
 
-      <section class="dettatura">
-        <div class="riga-microfono">
-          <button id="microfono" class="microfono" type="button" aria-label="Detta la lista">
-            <span class="pallino"></span>
-            <span id="etichetta-microfono">Detta la lista</span>
+        <form id="scrivi" class="scrivi" autocomplete="off">
+          <input id="campo" type="text" placeholder="…oppure scrivilo qui" aria-label="Aggiungi un prodotto scrivendolo" enterkeyhint="done" />
+          <button type="submit" aria-label="Aggiungi alla lista">+</button>
+        </form>
+      </main>
+
+      <footer class="comandi">
+        <p id="ascolto" class="ascolto" role="status" aria-live="polite"></p>
+        <div class="barra-comandi">
+          <button id="svuota" class="tondo secondario" type="button" aria-label="Svuota la lista" title="Svuota la lista">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12" /></svg>
           </button>
-          <span id="stato-voce" class="stato" role="status" aria-live="polite"></span>
+
+          <button id="microfono" class="microfono" type="button" aria-label="Detta la lista" aria-pressed="false">
+            <svg class="anello" viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="traccia" cx="50" cy="50" r="46" />
+              <circle id="progresso" class="progresso" cx="50" cy="50" r="46" />
+            </svg>
+            <svg class="icona-mic" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="11" rx="3" />
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" />
+            </svg>
+            <span id="ultima" class="ultima" aria-hidden="true"></span>
+          </button>
+
+          <button id="vai" class="tondo vai" type="button" disabled>Vai</button>
         </div>
+      </footer>
+    </section>
 
-        <textarea
-          id="lista"
-          rows="5"
-          placeholder="latte x6, pasta, 2 kg di pane, carta igienica"
-          aria-label="Lista della spesa"
-        ></textarea>
+    <!-- SCHERMATA 2: il lavoro in corso e il risultato -->
+    <section id="schermo-esito" class="schermo" hidden>
+      <header class="testata">
+        <h1 id="titolo-esito">Preparo la spesa</h1>
+      </header>
 
-        <div class="azioni">
-          <button id="elabora" class="primario" type="button">Riempi il carrello</button>
-          <button id="pulisci" class="secondario" type="button">Pulisci</button>
+      <main class="contenuto">
+        <ol id="passi" class="passi">
+          <li id="passo-cerca">Cerco i prodotti più convenienti</li>
+          <li id="passo-carrello">Li metto nel carrello Conad</li>
+        </ol>
+
+        <div id="esito" class="esito" hidden>
+          <ul id="messi" class="messi"></ul>
+          <p id="totale" class="totale" hidden></p>
+          <div id="saltati" class="saltati" hidden>
+            <h2>Non trovati</h2>
+            <ul></ul>
+          </div>
+          <p id="errore" class="errore" hidden></p>
         </div>
-      </section>
+      </main>
 
-      <section id="risultati" class="risultati" aria-live="polite"></section>
-
-      <section id="invio" class="invio" hidden>
-        <button id="metti-nel-carrello" class="primario" type="button">Metti nel carrello Conad</button>
-        <p class="dettagli">Aggiunge le scelte qui sopra al carrello del sito e si ferma: l'orario di ritiro e il pagamento li fai tu.</p>
-      </section>
-
-      <section id="rapporto" class="rapporto" aria-live="polite" hidden></section>
-    </main>
-
-    <footer id="riepilogo" class="riepilogo" hidden>
-      <div class="totale">
-        <span>Totale</span>
-        <strong id="totale">0,00 €</strong>
-      </div>
-      <p class="nota">
-        L'ordine non viene mai completato: niente orario di ritiro, niente pagamento.
-      </p>
-    </footer>
+      <footer class="comandi esito-comandi">
+        <a id="paga" class="pieno" href="https://spesaonline.conad.it/" target="_blank" rel="noopener" hidden>Vai a pagare su Conad</a>
+        <button id="nuova" class="pieno secondario" type="button" hidden>Nuova spesa</button>
+      </footer>
+    </section>
 
     <script src="/app.js"></script>
   </body>
