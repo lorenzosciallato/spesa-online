@@ -422,9 +422,11 @@ disegnaLista();
   const btn = document.getElementById('cookie-importa');
   if (!btn) return;
   const box = document.getElementById('cookie-testo');
+  const boxMem = document.getElementById('memoria-testo');
   const stato = document.getElementById('cookie-stato');
   btn.addEventListener('click', async () => {
     const dati = (box.value || '').trim();
+    const memoria = (boxMem && boxMem.value || '').trim();
     if (!dati) { stato.textContent = 'Incolla prima i cookie di Conad qui sopra.'; return; }
     btn.disabled = true;
     const orig = btn.textContent;
@@ -433,12 +435,13 @@ disegnaLista();
       const r = await fetch('/api/browser/azione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'cookie', dati }),
+        body: JSON.stringify({ tipo: 'cookie', dati, memoria: memoria || undefined }),
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok) {
         stato.textContent = (d.messaggio ? d.messaggio + ' — ' : '') + 'ora sei loggato! Torna su e fai la spesa.';
         box.value = '';
+        if (boxMem) boxMem.value = '';
       } else {
         stato.textContent = d.errore || 'Non ha funzionato: controlla di aver copiato i cookie dalla scheda di spesaonline.conad.it.';
       }

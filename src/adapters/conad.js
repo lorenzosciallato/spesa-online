@@ -726,7 +726,33 @@ export function azione(a) {
         }
         await contesto.addCookies(cookie);
         await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(2500);
+        await p.waitForTimeout(1500);
+
+        // Clona anche la MEMORIA del sito (localStorage/sessionStorage): e' li'
+        // che Conad tiene la scelta del negozio, che i cookie non contengono.
+        let chiaviMemoria = 0;
+        if (a.memoria) {
+          let mem = a.memoria;
+          if (typeof mem === 'string') {
+            try {
+              mem = JSON.parse(mem);
+            } catch {
+              throw new Error('la "memoria del sito" incollata non e\' valida: rifai copia dallo snippet');
+            }
+          }
+          const local = (mem && (mem.local || mem.localStorage)) || {};
+          const session = (mem && (mem.session || mem.sessionStorage)) || {};
+          chiaviMemoria = Object.keys(local).length + Object.keys(session).length;
+          await p.evaluate(({ local, session }) => {
+            try { for (const [k, v] of Object.entries(local)) localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch { /* niente */ }
+            try { for (const [k, v] of Object.entries(session)) sessionStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch { /* niente */ }
+          }, { local, session }).catch(() => {});
+          // Ricarico cosi' il sito rilegge cookie + memoria e ricostruisce tutto.
+          await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
+          await p.waitForTimeout(2500);
+        } else {
+          await p.waitForTimeout(1000);
+        }
         await chiudiPopup(p).catch(() => {});
         // Diagnostica: cosa vede il robot adesso? (login e NEGOZIO vero,
         // cioe' window.pointOfService, non interactionCondition).
@@ -744,7 +770,7 @@ export function azione(a) {
         const ok = Boolean(diag.negozio);
         return {
           url: p.url(),
-          messaggio: `importati ${cookie.length} cookie — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}"${ok ? ' ✅ pronto: fai la spesa!' : ' ⚠ manca il negozio: scegli Tolentino + ritiro'}`,
+          messaggio: `importati ${cookie.length} cookie${chiaviMemoria ? ` + ${chiaviMemoria} voci di memoria` : ''} — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}"${ok ? ' ✅ pronto: fai la spesa!' : ' ⚠ manca il negozio'}`,
         };
       }
       case 'clic-conad': {

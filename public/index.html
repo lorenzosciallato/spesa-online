@@ -39,11 +39,20 @@
             Apri <b>Cookie-Editor stando su quella scheda</b>, premi
             <b>Export → Export as JSON</b>, poi incolla qui sotto e premi il tasto.
           </p>
-          <textarea id="cookie-testo" rows="4" placeholder="Incolla qui i cookie di spesaonline.conad.it (Export as JSON)"
+          <b style="font-size:0.9rem;">1) Cookie</b>
+          <textarea id="cookie-testo" rows="3" placeholder="Cookie-Editor → Export as JSON → incolla qui"
             style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #bcd;border-radius:10px;font:inherit;"></textarea>
+          <b style="font-size:0.9rem;margin-top:0.4rem;">2) Memoria del sito (contiene il negozio)</b>
+          <p style="font-size:0.85rem;color:#333;margin:0.3rem 0;">
+            Sulla scheda <b>spesaonline.conad.it</b> premi <b>F12</b>, apri <b>Console</b>, incolla questa riga e premi Invio (copia la memoria):
+          </p>
+          <textarea readonly rows="2" onclick="this.select()"
+            style="width:100%;box-sizing:border-box;padding:0.5rem;border:1px dashed #bcd;border-radius:8px;font:12px monospace;background:#f7fbff;">copy(JSON.stringify({local:Object.assign({},localStorage),session:Object.assign({},sessionStorage)}))</textarea>
+          <textarea id="memoria-testo" rows="3" placeholder="…poi incolla qui il risultato della console"
+            style="width:100%;box-sizing:border-box;margin-top:0.3rem;padding:0.6rem 0.75rem;border:1px solid #bcd;border-radius:10px;font:inherit;"></textarea>
           <button id="cookie-importa" type="button"
             style="margin-top:0.5rem;width:100%;padding:0.7rem;border:none;border-radius:10px;background:#1e5bb8;color:#fff;font:inherit;font-weight:700;cursor:pointer;">
-            Importa cookie e accedi
+            Importa tutto e accedi
           </button>
           <p id="cookie-stato" role="status" style="font-size:0.9rem;margin:0.5rem 0 0;color:#123a6b;"></p>
         </details>
