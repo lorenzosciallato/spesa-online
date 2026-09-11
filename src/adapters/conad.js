@@ -851,17 +851,30 @@ export function azione(a) {
           await indirizzo.fill('');
           // Indirizzo esatto del punto vendita: cosi' Google lo geolocalizza
           // preciso e la lista negozi propone subito Spazio Conad Tolentino.
-          await indirizzo.type('Contrada Cisterna, 62029 Tolentino MC', { delay: 70 });
-          await p.waitForTimeout(2500);
-          const scelto = await cliccaVisibile(p, '.pac-container .pac-item:has-text("Tolentino"), .pac-item:has-text("Tolentino"), .pac-container .pac-item, .pac-item');
-          if (!scelto) await indirizzo.press('Enter');
-          await p.waitForTimeout(1500);
+          await indirizzo.type('Contrada Cisterna, 62029 Tolentino MC', { delay: 80 });
+          // Aspetta i suggerimenti di Google e clicca il primo VERO (non
+          // "Rileva la mia posizione"): questo valida l'indirizzo e chiude la
+          // tendina, cosi' "Verifica" diventa cliccabile.
+          const sugg = p.locator('.pac-container .pac-item, .pac-item').filter({ hasNotText: 'Rileva' });
+          try {
+            await sugg.first().waitFor({ state: 'visible', timeout: 7000 });
+            await sugg.first().click({ timeout: 4000 });
+          } catch {
+            await indirizzo.press('Enter').catch(() => {});
+          }
+          await p.waitForTimeout(1800);
         });
 
-        // 3) Verifica.
+        // 3) Verifica: forzo il click (la tendina di Google puo' coprirlo) e,
+        //    in ultima spiaggia, lancio il click via DOM.
         await passo('Verifica', async () => {
-          await cliccaVisibile(p, '#verificaButton, button.submitButton, button:has-text("Verifica")');
-          await p.waitForTimeout(3000);
+          const v = await trovaVisibile(p, '#verificaButton, .lp-onboarding button.submitButton, .google-input button.submitButton, button.submitButton, button:has-text("Verifica")');
+          if (v) {
+            await v.click({ timeout: 4000, force: true }).catch(async () => {
+              await v.evaluate((el) => el.click()).catch(() => {});
+            });
+          }
+          await p.waitForTimeout(3500);
         });
 
         // 4) Servizio: Ordina e ritira.
