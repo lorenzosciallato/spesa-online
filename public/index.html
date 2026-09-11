@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spesa</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Spesa</h1>
+      <p class="sottotitolo">Detta la lista, scelgo io il piu conveniente.</p>
+    </header>
+
+    <main>
+      <section class="dettatura">
+        <div class="riga-microfono">
+          <button id="microfono" class="microfono" type="button" aria-label="Detta la lista">
+            <span class="pallino"></span>
+            <span id="etichetta-microfono">Detta la lista</span>
+          </button>
+          <span id="stato-voce" class="stato" role="status" aria-live="polite"></span>
+        </div>
+
+        <textarea
+          id="lista"
+          rows="5"
+          placeholder="latte x6, pasta, 2 kg di pane, carta igienica"
+          aria-label="Lista della spesa"
+        ></textarea>
+
+        <div class="azioni">
+          <button id="elabora" class="primario" type="button">Riempi il carrello</button>
+          <button id="pulisci" class="secondario" type="button">Pulisci</button>
+        </div>
+      </section>
+
+      <section id="risultati" class="risultati" aria-live="polite"></section>
+    </main>
+
+    <footer id="riepilogo" class="riepilogo" hidden>
+      <div class="totale">
+        <span>Totale</span>
+        <strong id="totale">0,00 €</strong>
+      </div>
+      <p class="nota">
+        L'ordine non viene mai completato: niente orario di ritiro, niente pagamento.
+      </p>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

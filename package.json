@@ -1,0 +1,12 @@
+{
+  "name": "spesa-conad",
+  "version": "0.1.0",
+  "description": "Web app per dettare la lista della spesa e riempire il carrello con i prodotti piu convenienti",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "license": "MIT"
+}
