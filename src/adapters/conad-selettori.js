@@ -132,28 +132,63 @@ export const DENTRO_SCHEDA = {
     'button:has-text("Aggiungi")',
     'button[class*="add-product"]',
   ],
-  // Dopo la prima aggiunta le schede mostrano spesso uno stepper: "-" [n] "+".
+  // Dopo la prima aggiunta la scheda mostra uno stepper: "-" [n] "+".
+  // Sul sito vero e' il blocco `.add-quantity` (nascosto con `uk-hidden`
+  // finche' il prodotto non e' nel carrello); il "+" e' un altro
+  // `button.add-quantity-button` che richiama sempre ProductCard.addToCart.
   piu: [
+    '.add-quantity button.add-quantity-button:last-child',
+    'button.qty-plus',
     'button[class*="plus"]',
     'button[class*="increase"]',
     'button[class*="increment"]',
     'button[aria-label*="Aumenta"]',
     'button[aria-label*="aumenta"]',
-    'button[aria-label*="Aggiungi"]',
     'button:has-text("+")',
   ],
+  // Quantita' del prodotto NEL CARRELLO, letta dallo stepper della scheda.
+  // ATTENZIONE: NON usare `.product-quantity`: sul sito vero quello e' il
+  // formato della confezione ("1 L"), non la quantita' -> falso positivo.
+  // Lo stepper e' visibile solo quando il prodotto e' davvero nel carrello,
+  // quindi `primoVisibile` restituisce null (=> 0) finche' non lo aggiungi.
   quantita: [
-    'input[type="number"]',
-    'input[class*="quantity"]',
-    'input[class*="qty"]',
-    '[class*="quantity"] input',
-    '[class*="qty"] input',
-    '[class*="quantity-value"]',
+    '.add-quantity b.quantity',
+    '.add-quantity .quantity',
+    '.quantity-value',
     '[class*="qty-value"]',
+    'input[type="number"]',
+    'input[class*="quantity"]:not([class*="product-quantity"])',
   ],
   immagine: ['img'],
   link: ['a[href*="/p/"]', 'a[href]'],
 };
+
+// Contatore del carrello in alto a destra ("X € - [N]"): e' lo stato reale
+// del carrello, quello da guardare per capire se un'aggiunta e' andata a
+// buon fine. Sul sito vero compare solo quando hai scelto negozio e servizio
+// (cioe' da loggato); sul sito finto di collaudo e' `.minicart-quantity`.
+export const CONTATORE = [
+  '.minicart-quantity',
+  '[class*="minicart"] [class*="quantity"]',
+  '[class*="mini-cart"] [class*="quantity"]',
+  '[class*="minicart"] [class*="count"]',
+  '[class*="cart"] [class*="badge"]',
+  '[class*="cart"] [class*="count"]',
+  'header [class*="cart"] [class*="num"]',
+];
+
+// Situazioni in cui il sito NON aggiunge e apre invece un pannello:
+// - `interactionCondition = "REQUIRE_SERVICE_CHOICE"`: manca la scelta del
+//   negozio/servizio (tipico da sloggato) -> prima serve `npm run conad:login`.
+// - una modale di avviso ("modal-cart", contingentamento, ecc.).
+export const SCELTA_SERVIZIO = /REQUIRE_SERVICE_CHOICE|REQUIRE_LOGIN|CHOOSE_SERVICE/i;
+export const MODALE_BLOCCANTE = [
+  '.uk-modal.uk-open',
+  '.component-modal-cart-generic.uk-open',
+  '[class*="modal-cart"].uk-open',
+  '[class*="modal-contingentamento"].uk-open',
+  '.modal.show',
+];
 
 // Pagina carrello.
 export const CARRELLO = {
@@ -166,8 +201,22 @@ export const CARRELLO = {
     '[class*="cartItem"]',
     '[class*="cart-product"]',
   ],
-  nome: DENTRO_SCHEDA.nome,
-  marca: DENTRO_SCHEDA.marca,
+  // Nome/marca della riga: prima i selettori tipici della pagina carrello,
+  // poi quelli della scheda come ripiego.
+  nome: [
+    '.line-item-name',
+    '.product-line-item-name',
+    '[class*="line-item-name"]',
+    '[class*="lineItemName"]',
+    '[class*="item-name"]',
+    ...DENTRO_SCHEDA.nome,
+  ],
+  marca: [
+    '.line-item-brand',
+    '[class*="line-item-brand"]',
+    '[class*="item-brand"]',
+    ...DENTRO_SCHEDA.marca,
+  ],
   quantita: [
     'input[class*="quantity"]',
     'input[class*="qty"]',

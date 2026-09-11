@@ -260,12 +260,70 @@ async function trovaScheda(p, prodotto) {
   return null;
 }
 
+// Quantita' di QUESTO prodotto nel carrello, letta dallo stepper della scheda.
+// Lo stepper e' visibile solo se il prodotto e' davvero nel carrello: se non
+// c'e' (o e' nascosto) `primoVisibile` torna null e la quantita' e' 0.
 async function quantitaNellaScheda(scheda) {
   const campo = await primoVisibile(scheda, S.DENTRO_SCHEDA.quantita);
   if (!campo) return 0;
   const tag = await campo.evaluate((el) => el.tagName.toLowerCase());
   const valore = tag === 'input' || tag === 'select' ? await campo.inputValue() : await campo.innerText();
   return Math.round(numero(valore) || 0);
+}
+
+// Numero di articoli nel carrello secondo lo STATO REALE del sito: prima la
+// variabile globale del carrello (sito vero), poi il contatore in alto a
+// destra. Torna null se non riesce a leggerlo (es. da sloggato non c'e').
+async function contaCarrello(p) {
+  return p.evaluate((selettori) => {
+    const num = (t) => {
+      const m = String(t == null ? '' : t).replace(/\s/g, '').match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : null;
+    };
+    try {
+      const c = window.cart;
+      if (c && typeof c === 'object') {
+        for (const k of ['totalQuantity', 'totalItems', 'numberOfItems', 'productsQuantity', 'itemsQuantity', 'numItems']) {
+          if (typeof c[k] === 'number') return c[k];
+        }
+        for (const k of ['items', 'products', 'entries', 'orderItems']) {
+          if (Array.isArray(c[k])) return c[k].reduce((s, it) => s + (Number(it.quantity ?? it.qty ?? it.amount) || 1), 0);
+        }
+      }
+    } catch {
+      /* variabile non accessibile: uso il contatore visibile */
+    }
+    for (const s of selettori) {
+      const el = document.querySelector(s);
+      if (el) {
+        const n = num(el.getAttribute('data-quantity') || el.textContent);
+        if (n != null) return n;
+      }
+    }
+    return null;
+  }, S.CONTATORE);
+}
+
+// Il sito, invece di aggiungere, apre un pannello? Da sloggato manca la scelta
+// del negozio/servizio; puo' anche comparire una modale di avviso. In quei
+// casi il click non aggiunge nulla e va segnalato, non contato come successo.
+async function motivoBlocco(p) {
+  const condizione = await p.evaluate(() => {
+    try {
+      return String(window.interactionCondition || '');
+    } catch {
+      return '';
+    }
+  });
+  if (S.SCELTA_SERVIZIO.test(condizione)) {
+    return 'il sito chiede prima di scegliere negozio e servizio (di solito perche\' non sei loggato): esegui "npm run conad:login" e riprova';
+  }
+  const modale = await primoVisibile(p, S.MODALE_BLOCCANTE, 200);
+  if (modale) {
+    const testo = (await modale.innerText().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 160);
+    return `il sito ha aperto un pannello che blocca l'aggiunta${testo ? `: "${testo}"` : ''}`;
+  }
+  return null;
 }
 
 /**
@@ -277,6 +335,13 @@ export function aggiungiAlCarrello(prodotto, quantita) {
     const voluta = Math.max(1, Math.round(quantita || 1));
     const p = await vaiA(S.PAGINE.ricerca(prodotto.ricerca || prodotto.nome));
     await p.waitForTimeout(ATTESA);
+
+    // Se il sito chiede prima di scegliere negozio/servizio, aggiungere e'
+    // inutile: lo segnalo subito invece di fingere un successo.
+    const bloccoIniziale = await motivoBlocco(p);
+    if (S.SCELTA_SERVIZIO && bloccoIniziale && /negozio|servizio|loggat/i.test(bloccoIniziale)) {
+      return { ok: false, quantita: 0, motivo: bloccoIniziale };
+    }
 
     let scheda = await trovaScheda(p, prodotto);
     if (!scheda && prodotto.url) {
@@ -293,6 +358,10 @@ export function aggiungiAlCarrello(prodotto, quantita) {
       return { ok: true, quantita: giaNelCarrello, nota: 'gia nel carrello' };
     }
 
+    // Contatore del carrello PRIMA: serve a verificare l'aggiunta guardando
+    // lo stato reale del carrello, non un campo della scheda.
+    const primaContatore = await contaCarrello(p);
+
     // Primo click: "Aggiungi". Poi "+" finche' non arrivo alla quantita'.
     let attuale = giaNelCarrello;
     if (attuale === 0) {
@@ -300,7 +369,17 @@ export function aggiungiAlCarrello(prodotto, quantita) {
       if (!aggiungi) throw new Error(`bottone "Aggiungi" non trovato per "${prodotto.nome}"`);
       await aggiungi.click();
       await p.waitForTimeout(ATTESA);
-      attuale = Math.max(1, await quantitaNellaScheda(scheda));
+      attuale = await quantitaNellaScheda(scheda);
+
+      // Verifica reale: lo stepper mostra >=1, oppure il contatore e' salito.
+      const dopoContatore = await contaCarrello(p);
+      const contatoreSalito = primaContatore != null && dopoContatore != null && dopoContatore > primaContatore;
+      if (attuale < 1 && !contatoreSalito) {
+        const motivo = (await motivoBlocco(p)) || 'il click su "Aggiungi" non ha aggiunto nulla (nessuno stepper, contatore invariato)';
+        await salvaDebug(p, `fallita-${prodotto.nome}`);
+        return { ok: false, quantita: 0, motivo };
+      }
+      if (attuale < 1) attuale = 1; // stepper non leggibile ma il carrello e' salito
     }
 
     for (let tentativi = 0; attuale < voluta && tentativi < voluta + 3; tentativi += 1) {
@@ -308,21 +387,32 @@ export function aggiungiAlCarrello(prodotto, quantita) {
       if (!piu) {
         // Nessuno stepper: provo a scrivere la quantita' nel campo.
         const campo = await primoVisibile(scheda, S.DENTRO_SCHEDA.quantita);
-        if (!campo) throw new Error(`non riesco ad aumentare la quantita' di "${prodotto.nome}"`);
+        if (!campo) break;
         await campo.fill(String(voluta));
         await campo.press('Enter');
         await p.waitForTimeout(ATTESA);
-        attuale = await quantitaNellaScheda(scheda);
+        const letta = await quantitaNellaScheda(scheda);
+        if (letta > attuale) attuale = letta;
         break;
       }
       await piu.click();
       await p.waitForTimeout(Math.max(400, ATTESA / 2));
       const letta = await quantitaNellaScheda(scheda);
-      attuale = letta > attuale ? letta : attuale + 1;
+      if (letta > attuale) {
+        attuale = letta;
+      } else {
+        // Il "+" non ha avuto effetto: mi fermo e riporto la quantita' vera.
+        break;
+      }
     }
 
     await salvaDebug(p, `aggiunto-${prodotto.nome}`);
-    return { ok: attuale >= voluta, quantita: attuale };
+    if (attuale >= voluta) return { ok: true, quantita: attuale };
+    return {
+      ok: false,
+      quantita: attuale,
+      motivo: `nel carrello ne risultano ${attuale} invece di ${voluta}`,
+    };
   });
 }
 
@@ -522,4 +612,4 @@ export function azione(a) {
 }
 
 // Usato dagli script e dai test.
-export const _interno = { vaiA, browser, chiudiPopup };
+export const _interno = { vaiA, browser, chiudiPopup, contaCarrello, motivoBlocco };

@@ -175,7 +175,7 @@ async function gestisciCarrello(req, res) {
     try {
       const esito = await catalogo.aggiungiAlCarrello(prodotto, quantita);
       if (esito.ok) aggiunti.push({ prodotto, quantita: esito.quantita, nota: esito.nota });
-      else falliti.push({ prodotto, quantita, motivo: `nel carrello ne risultano ${esito.quantita}` });
+      else falliti.push({ prodotto, quantita, motivo: esito.motivo || `nel carrello ne risultano ${esito.quantita}` });
     } catch (errore) {
       falliti.push({ prodotto, quantita, motivo: errore.message });
     }
