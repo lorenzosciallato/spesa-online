@@ -700,8 +700,26 @@ export function azione(a) {
         }
         await contesto.addCookies(cookie);
         await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
+        await p.waitForTimeout(2500);
         await chiudiPopup(p).catch(() => {});
-        return { url: p.url(), messaggio: `importati ${cookie.length} cookie di Conad` };
+        // Diagnostica: cosa vede il robot adesso? (login, negozio, servizio)
+        const diag = await p.evaluate(() => {
+          const g = (k) => { try { return window[k]; } catch { return undefined; } };
+          const pos = g('pointOfService');
+          const nome = pos && (pos.displayName || pos.name || pos.storeName || pos.uid);
+          const testo = document.body ? document.body.innerText : '';
+          return {
+            cond: String(g('interactionCondition') || ''),
+            negozio: nome || (/(tolentino)/i.test(testo) ? 'Tolentino (nel testo)' : ''),
+            servizio: String(g('typeOfService') || ''),
+            loggato: !/\bAccedi\b/.test(testo) || /esci|logout|il mio account/i.test(testo),
+          };
+        }).catch(() => ({}));
+        const ok = diag.cond && !/REQUIRE/i.test(diag.cond);
+        return {
+          url: p.url(),
+          messaggio: `importati ${cookie.length} cookie — loggato:${diag.loggato ? 'si' : 'no'} negozio:"${diag.negozio || '(nessuno)'}" servizio:"${diag.servizio || '(nessuno)'}" stato:"${diag.cond || '?'}"${ok ? ' ✅ pronto' : ' ⚠ Conad non vede il negozio per questa sessione'}`,
+        };
       }
       case 'clic-testo': {
         const testo = String(a.testo || '').slice(0, 40);
