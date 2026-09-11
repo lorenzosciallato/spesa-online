@@ -143,7 +143,7 @@ export function creaSitoFinto() {
     }
 
     let html;
-    if (url.pathname === '/search') html = paginaRicerca(url.searchParams.get('q') || '');
+    if (url.pathname === '/search') html = paginaRicerca(url.searchParams.get('query') || '');
     else if (url.pathname === '/cartdetail') html = paginaCarrello();
     else if (url.pathname === '/') html = pagina('Home', '<h1>Spesa online</h1>');
     else if (url.pathname.startsWith('/img/')) {

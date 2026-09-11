@@ -38,7 +38,7 @@ Poi dal telefono o dal Chromebook si apre `http://INDIRIZZO-DEL-VPS:3000`
 3. torna alla pagina della spesa: l'avviso diventa verde. Da li in poi la
    sessione resta salvata nel volume `spesa-dati`.
 
-Se il sito Conad usa un indirizzo di ricerca diverso da `/search?q=...`,
+Se il sito Conad usa un indirizzo di ricerca diverso da `/search?query=...`,
 passalo cosi: `CONAD_URL_RICERCA='/ricerca?testo={q}' docker compose up -d`.
 
 ---
