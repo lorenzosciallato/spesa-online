@@ -439,5 +439,60 @@ export function stato() {
   });
 }
 
+// ---- finestra remota: vedere e guidare il browser del server ----
+// Serve a fare il login a Conad e a scegliere il punto vendita quando l'app
+// gira su un server senza schermo. Le pagine vietate restano bloccate.
+
+export function schermo() {
+  return inFila(async () => {
+    const p = await browser();
+    if (p.url() === 'about:blank') {
+      await p.goto(urlDi(S.PAGINE.home), { waitUntil: 'domcontentloaded' }).catch(() => {});
+    }
+    const immagine = await p.screenshot({ type: 'jpeg', quality: 60 });
+    const vp = p.viewportSize();
+    return { immagine, url: p.url(), larghezza: vp.width, altezza: vp.height };
+  });
+}
+
+export function azione(a) {
+  return inFila(async () => {
+    const p = await browser();
+    switch (a.tipo) {
+      case 'click':
+        await p.mouse.click(Number(a.x), Number(a.y));
+        break;
+      case 'scrivi':
+        await p.keyboard.type(String(a.testo || ''), { delay: 20 });
+        break;
+      case 'tasto':
+        if (!/^[A-Za-z0-9]{1,12}$/.test(String(a.tasto))) throw new Error('tasto non valido');
+        await p.keyboard.press(String(a.tasto));
+        break;
+      case 'scorri':
+        await p.mouse.wheel(0, Number(a.dy) || 400);
+        break;
+      case 'vai':
+        await p.goto(urlDi(String(a.url || '/')), { waitUntil: 'domcontentloaded' }).catch((e) => {
+          throw new Error(/BLOCKED_BY_CLIENT/.test(e.message)
+            ? 'pagina bloccata: da qui non si arriva a orario, pagamento o conferma'
+            : `pagina non raggiungibile: ${e.message.split('\n')[0]}`);
+        });
+        break;
+      case 'indietro':
+        await p.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {});
+        break;
+      case 'popup':
+        await chiudiPopup(p);
+        break;
+      default:
+        throw new Error(`azione sconosciuta: ${a.tipo}`);
+    }
+    await p.waitForLoadState('domcontentloaded').catch(() => {});
+    await p.waitForTimeout(250);
+    return { url: p.url() };
+  });
+}
+
 // Usato dagli script e dai test.
 export const _interno = { vaiA, browser, chiudiPopup };

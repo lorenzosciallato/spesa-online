@@ -1,0 +1,18 @@
+services:
+  spesa:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Password che i telefoni chiedono per aprire l'app. Cambiala.
+      SPESA_PASSWORD: ${SPESA_PASSWORD:-cambiami}
+      # Indirizzo di ricerca del sito, con {q} al posto della parola cercata.
+      CONAD_URL_RICERCA: ${CONAD_URL_RICERCA:-/search?q={q}}
+    volumes:
+      # Qui resta la sessione Conad (login, punto vendita, ritiro).
+      - spesa-dati:/dati
+    shm_size: "1gb"
+
+volumes:
+  spesa-dati:

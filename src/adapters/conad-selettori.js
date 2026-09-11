@@ -12,10 +12,14 @@
 export const BASE_URL = process.env.CONAD_BASE_URL || 'https://spesaonline.conad.it';
 
 // Pagine del sito.
+// L'indirizzo di ricerca si puo' cambiare senza toccare il codice:
+//   CONAD_URL_RICERCA='/ricerca?testo={q}'
+const URL_RICERCA = process.env.CONAD_URL_RICERCA || '/search?q={q}';
+
 export const PAGINE = {
   home: '/',
-  ricerca: (q) => `/search?q=${encodeURIComponent(q)}`,
-  carrello: '/cartdetail',
+  ricerca: (q) => URL_RICERCA.replace('{q}', encodeURIComponent(q)),
+  carrello: process.env.CONAD_URL_CARRELLO || '/cartdetail',
 };
 
 // Pezzi di URL che l'app NON deve mai aprire: orario di ritiro, checkout,
